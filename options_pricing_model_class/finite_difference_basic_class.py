@@ -24,4 +24,4 @@ class FiniteDifferenceBasicClass(object):
 
     @property
     def dt(self):
-        return self.t/float(self.m)
+        return self.t/float(self.n)
