@@ -1,4 +1,3 @@
-from options_pricing_model_class.absstract_basic import BasicTreeOptionsClass
 import numpy as np
 
 
@@ -38,5 +37,9 @@ class StockOPtion(object):
     @property
     def df(self):
         return np.exp(-(self.r-self.div)*self.dt)
+
+
+
+
 
 

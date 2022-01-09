@@ -1,7 +1,7 @@
 import numpy as np
 
 from options_pricing_model_class.stock_basic_class import StockOPtion
-from options_pricing_model_class.absstract_basic import BasicTreeOptionsClass
+from options_pricing_model_class.abstract_basic import BasicTreeOptionsClass
 
 
 class BinomialEuropeanOption(StockOPtion, BasicTreeOptionsClass):
@@ -487,7 +487,6 @@ if __name__ == '__main__':
     print(model.price())
     model = BinomialCRROptionLattice(50, 52, r=0.05, t=2, n=2, sigma=0.3, is_put=True, is_am=True)
     print(model.price())
-
     model = TrinomialLROptionLattice(50, 52, r=0.05, t=2, n=2, sigma=0.3, is_put=True)
     print(model.price())
     model = TrinomialLROptionLattice(50, 52, r=0.05, t=2, n=2, sigma=0.3, is_put=True, is_am=True)

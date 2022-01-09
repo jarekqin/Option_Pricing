@@ -1,4 +1,3 @@
-import math
 from abc import ABC,abstractmethod
 
 class BasicTreeOptionsClass(ABC):
@@ -23,9 +22,10 @@ class BasicTreeOptionsClass(ABC):
         pass
 
 
-class FiniteDifferencesClass(ABC):
+
+class BasicFiniteDifferences(ABC):
     @abstractmethod
-    def setup_boundary_conditions(self):
+    def setup_bounday_conditions(self):
         pass
 
     @abstractmethod
@@ -33,6 +33,14 @@ class FiniteDifferencesClass(ABC):
         pass
 
     @abstractmethod
+    def setup_coefficients(self):
+        pass
+
+    @abstractmethod
     def interpolate(self):
+        pass
+
+    @abstractmethod
+    def price(self):
         pass
 
