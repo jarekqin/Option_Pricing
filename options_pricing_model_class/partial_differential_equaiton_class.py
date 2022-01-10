@@ -5,6 +5,8 @@ from options_pricing_model_class.finite_difference_basic_class import FiniteDiff
 import numpy as np
 import scipy.linalg as linalg
 
+import scipy.stats as st
+
 
 class FDExplicitEU(BasicFiniteDifferences, FiniteDifferenceBasicClass):
     def __init__(self, s0, k, r, t, sigma, smax, m, n, is_put=False):
@@ -158,7 +160,7 @@ class FDCAM(BasicFiniteDifferences, FiniteDifferenceBasicClass):
             while self.tol < error:
                 new_values[0] = self.calculate_payoff_start_boundary(rhs, old_values)
                 for k in range(self.m - 2)[1:]:
-                    new_values[k] = self.calculate_payoffs(k, rhs,old_values, new_values)
+                    new_values[k] = self.calculate_payoffs(k, rhs, old_values, new_values)
 
                 new_values[-1] = self.calculate_payoff_end_boundary(rhs, old_values, new_values)
 
@@ -195,6 +197,146 @@ class FDCAM(BasicFiniteDifferences, FiniteDifferenceBasicClass):
         return self.interpolate()
 
 
+class VasicekCZCBOptions(object):
+    def __init__(self):
+        self.norminv = st.norm.ppf
+        self.norm = st.norm.cdf
+
+    def vasicke_czcb_values(self, r0, r, ratio, t, sigma, kappa, theta, m, prob=1e-6, max_policy_iter=10,
+                            grid_struct_const=0.25, rs=None
+                            ):
+        (r_min, dr, n, dtau) = \
+            self.vasicek_params(r0, m, sigma, kappa, theta, t, prob, grid_struct_const, rs)
+        r = np.r_[0:n] * dr + r_min
+        v_mplus1 = np.ones(n)
+        for i in range(1, m + 1):
+            k = self.exercise_call_price(r, ratio, i * dtau)
+            eex = np.ones(n) * k
+            (subdiagonal, diagonal, superdiagonal) = \
+                self.vasicek_diagonals(
+                    sigma, kappa, theta, r_min, dr, n, dtau
+                )
+            (v_mplus1, iterations) = \
+                self.iterate(subdiagonal, diagonal, superdiagonal, v_mplus1, eex, max_policy_iter)
+        return r, v_mplus1
+
+    def vasicek_params(self, r0, m, sigma, kappa, theta, t, prob, grid_struct_const=0.25, rs=None):
+        if rs is not None:
+            (r_min, r_max) = (rs[0], rs[-1])
+        else:
+            (r_min, r_max) = self.vasicke_limits(r0, sigma, kappa, theta, t, prob)
+        dt = t / float(m)
+        n = self.calculate_n(grid_struct_const, dt, sigma, r_max, r_min)
+        dr = (r_max - r_min) / (n - 1)
+        return r_min, dr, n, dt
+
+    def calculate_n(self, max_structure_const, dt, sigma, r_max, r_min):
+        n = 0
+        while 1:
+            n += 1
+            grid_structure_interval = \
+                dt * (sigma ** 2) / (((r_max - r_min) / float(n) ** 2))
+            if grid_structure_interval > max_structure_const:
+                break
+        return n
+
+    def vasicke_limits(self, r0, sigma, kappa, theta, t, prob=1e-6):
+        er = theta + (r0 - theta) * np.exp(-kappa * t)
+        variance = (sigma ** 2) * t if kappa == 0 else \
+            (sigma ** 2) / (2 * kappa) * (1 - np.exp(-2 * kappa * t))
+        stdev = np.sqrt(variance)
+        r_min = self.norminv(prob, er, stdev)
+        r_max = self.norminv(1 - prob, er, stdev)
+        return r_min, r_max
+
+    def vasicek_diagonals(self, sigma, kappa, theta, r_min, dr, n, dtau):
+        rn = np.r_[0:n] * dr + r_min
+        subdiagonals = kappa * (theta - rn) * dtau / (2 * dr) - \
+                       0.5 * (sigma ** 2) * dtau / (dr ** 2)
+        diagonals = 1 + rn * dtau + sigma ** 2 * dtau / (dr ** 2)
+        superdiagnoals = -kappa * (theta - rn) * dtau / (2 * dr) - \
+                         0.5 * (sigma ** 2) * dtau / (dr ** 2)
+        if n > 0:
+            v_subd0 = subdiagonals[0]
+            superdiagnoals[0] = superdiagnoals[0] - subdiagonals[0]
+            diagonals[0] += 2 * v_subd0
+            subdiagonals[0] = 0
+
+        if n > 1:
+            v_subd0 = subdiagonals[-1]
+            superdiagnoals[-1] = superdiagnoals[-1] - subdiagonals[-1]
+            diagonals[-1] += 2 * v_subd0
+            subdiagonals[-1] = 0
+
+        return subdiagonals, diagonals, superdiagnoals
+
+    def check_exercise(self, v, eex):
+        return v > eex
+
+    def exercise_call_price(self, r, ratio, tau):
+        k = ratio * np.exp(-r * tau)
+        return k
+
+    def vasicek_policy_diagonals(self, subdiagonal, diagonal, superdiagonal, v_old, v_new, eex):
+        has_early_exercise = self.check_exercise(v_new, eex)
+        subdiagonal[has_early_exercise] = 0
+        superdiagonal[has_early_exercise] = 0
+        policy = v_old / eex
+        policy_values = policy[has_early_exercise]
+        diagonal[has_early_exercise] = policy_values
+        return subdiagonal, diagonal, superdiagonal
+
+    def iterate(self, subdiagonal, diagonal, superdiagonal, v_old, eex, max_policy_iter=10):
+        v_mplus1 = v_old
+        v_m = v_old
+        change = np.zeros(len(v_old))
+        prev_changes = np.zeros(len(v_old))
+
+        iterations = 0
+        while iterations <= max_policy_iter:
+            iterations += 1
+            v_mplus1 = self.tridiagonal_solve(subdiagonal, diagonal, superdiagonal, v_old)
+            subdiagonal, diagonal, superdiagonal = \
+                self.vasicek_policy_diagonals(subdiagonal, diagonal, superdiagonal, v_old, v_mplus1, eex)
+            is_eex = self.check_exercise(v_mplus1, eex)
+            change[is_eex] = 1
+
+            if iterations > 1:
+                change[v_mplus1 != v_m] = 1
+
+            is_no_more_eex = False if True in is_eex else True
+            if is_no_more_eex:
+                break
+
+            v_mplus1[is_eex] = eex[is_eex]
+            changes = (change == prev_changes)
+
+            is_no_further_changes = all((x == 1) for x in changes)
+            if is_no_further_changes:
+                break
+
+            prev_changes = change
+            v_m = v_mplus1
+        return v_mplus1, iterations - 1
+
+    def tridiagonal_solve(self, a, b, c, d):
+        nf = len(a)
+        ac, bc, cc, dc = map(np.array, (a, b, c, d))
+        for it in range(1, nf):
+            mc = ac[it] / bc[it - 1]
+            bc[it] = bc[it] - mc * cc[it - 1]
+            dc[it] = dc[it] - mc * dc[it - 1]
+
+        xc = ac
+        xc[-1] = dc[-1] / bc[-1]
+
+        for il in range(nf - 2, -1, -1):
+            xc[il] = (dc[il] - cc[il] * xc[il + 1] / bc[il])
+        del bc, cc, dc
+
+        return xc
+
+
 if __name__ == '__main__':
     model = FDExplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
     print(model.price())
@@ -213,3 +355,22 @@ if __name__ == '__main__':
     # print(model.price())
     # model = FDCAM(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, omega=1.2, tol=0.001, is_put=True)
     # print(model.price())
+
+    r0 = 0.05
+    r = 0.05
+    ratio = 0.95
+    sigma = 0.03
+    kappa = 0.15
+    theta = 0.05
+    prob = 1e-6
+    m = 250
+    max_policy_iter = 10
+    grid_struct_interval = 0.25
+    rs = np.r_[0.0:2.0:0.1]
+
+    vasicek = VasicekCZCBOptions()
+    r, vals = vasicek.vasicke_czcb_values(r0, r, ratio, 1., sigma, kappa, theta, m, prob, max_policy_iter,
+                                          grid_struct_interval, rs)
+    print(r)
+    print('-'*100)
+    print(vals)
