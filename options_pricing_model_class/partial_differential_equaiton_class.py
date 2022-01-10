@@ -165,9 +165,9 @@ class FDCAM(BasicFiniteDifferences, FiniteDifferenceBasicClass):
                 error = np.linalg.norm(new_values - old_values)
                 old_values = np.copy(new_values)
 
-        self.past_values = np.copy(new_values)
+            self.past_values = np.copy(new_values)
 
-        self.values = np.concatenate(([self.boundary_values[0]], new_values, 0))
+            self.values = np.concatenate(([self.boundary_values[0]], new_values, 0))
 
     def calculate_payoff_start_boundary(self, rhs, old_values):
         payoff = old_values[0] + self.omega / (1 - self.beta[1]) * (
@@ -196,20 +196,20 @@ class FDCAM(BasicFiniteDifferences, FiniteDifferenceBasicClass):
 
 
 if __name__ == '__main__':
-    # model = FDExplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
-    # print(model.price())
-    #
-    # model = FDImplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
-    # print(model.price())
-    # model = FDImplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, is_put=True)
-    # print(model.price())
-    #
-    # model = FDCEu(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
-    # print(model.price())
-    # model = FDCEu(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, is_put=True)
-    # print(model.price())
+    model = FDExplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
+    print(model.price())
 
-    model = FDCAM(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=42, omega=1.2, tol=0.001)
+    model = FDImplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
     print(model.price())
-    model = FDCAM(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, omega=1.2, tol=0.001, is_put=True)
+    model = FDImplicitEU(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, is_put=True)
     print(model.price())
+
+    model = FDCEu(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=1000, is_put=True)
+    print(model.price())
+    model = FDCEu(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, is_put=True)
+    print(model.price())
+
+    # model = FDCAM(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=100, n=42, omega=1.2, tol=0.001)
+    # print(model.price())
+    # model = FDCAM(50, 50, r=0.1, t=5. / 12., sigma=0.4, smax=100, m=80, n=100, omega=1.2, tol=0.001, is_put=True)
+    # print(model.price())
