@@ -1,5 +1,5 @@
 import setuptools
-setuptools.setup(name='options_pricing_model_class',
+setuptools.setup(name='vanilla_options_model',
       version='0.0.1',
       description='according to mastering python for finance 2nd edition',
       url='None',

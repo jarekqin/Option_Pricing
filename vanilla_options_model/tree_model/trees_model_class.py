@@ -1,7 +1,7 @@
 import numpy as np
 
-from options_pricing_model_class.stock_basic_class import StockOPtion
-from options_pricing_model_class.abstract_basic import BasicTreeOptionsClass
+from vanilla_options_model.basic_class.stock_basic_class import StockOPtion
+from vanilla_options_model.basic_class.abstract_basic import BasicTreeOptionsClass
 
 
 class BinomialEuropeanOption(StockOPtion, BasicTreeOptionsClass):
