@@ -428,21 +428,18 @@ class TrinomialLROptionLattice(StockOPtion, BasicTreeOptionsClass):
         for i in range(self.m2)[1:]:
             self.sts[i] = self.sts[i - 1] * self.d
 
-
     def init_payoffs_tree(self):
         if self.is_call:
             return np.maximum(0, self.sts - self.k)
         else:
             return np.maximum(0, self.k - self.sts)
 
-
     def check_early_exercise(self, payoffs, node):
-        self.sts=self.sts[1:-1]
+        self.sts = self.sts[1:-1]
         if self.is_call:
             return np.maximum(payoffs, self.sts - self.k)
         else:
             return np.maximum(payoffs, self.k - self.sts)
-
 
     def traverse_tree(self, payoffs):
         for i in reversed(range(self.n)):
@@ -451,11 +448,9 @@ class TrinomialLROptionLattice(StockOPtion, BasicTreeOptionsClass):
                 payoffs = self.check_early_exercise(payoffs, i)
         return payoffs
 
-
     def begine_tree_traversal(self):
         payoffs = self.init_payoffs_tree()
         return self.traverse_tree(payoffs)
-
 
     def price(self):
         self.setup_parameters()
