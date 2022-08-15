@@ -454,7 +454,7 @@ if __name__ == '__main__':
     print('call delta', BSMBase.BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
     print('put delta', BSMBase.BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
     print('gamma', BSMBase.BSM_GAMMA(60, 65, 0.25, 0.08, 0.08, 0.3))
-    print('vega', BSMBase.BSM_veGA(60, 65, 0.25, 0.08, 0.08, 0.3))
+    print('vega', BSMBase.BSM_VEGA(60, 65, 0.25, 0.08, 0.08, 0.3))
     print('call theta', BSMBase.BSM_THETA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
     print('put theta', BSMBase.BSM_THETA(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
     print('call rho', BSMBase.BSM_RHO(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
