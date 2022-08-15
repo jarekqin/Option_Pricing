@@ -1,7 +1,8 @@
 import sys
 
-from vanilla_options_model.basic_class.abstract_basic import BasicFiniteDifferences
-from vanilla_options_model.basic_class.finite_difference_basic_class import FiniteDifferenceBasicClass
+from option_pricing_model.vanilla_options_model.basic_class.abstract_basic import BasicFiniteDifferences
+from option_pricing_model.vanilla_options_model.basic_class.finite_difference_basic_class import \
+    FiniteDifferenceBasicClass
 import numpy as np
 import scipy.linalg as linalg
 
@@ -372,7 +373,6 @@ if __name__ == '__main__':
     r, vals = vasicek.vasicke_czcb_values(r0, r, ratio, 1., sigma, kappa, theta, m, prob, max_policy_iter,
                                           grid_struct_interval, rs)
     print(r)
-    print('-'*100)
+    print('-' * 100)
     print(vals)
     # https://conda.anaconda.org/nvidia/linux-64/cudnn-8.0.0-cuda11.0_0.tar.bz2
-

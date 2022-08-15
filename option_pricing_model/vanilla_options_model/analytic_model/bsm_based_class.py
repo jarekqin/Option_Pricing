@@ -25,7 +25,8 @@ class BSMBase(object):
         d2 = d1 - vol * np.sqrt(maturity)
 
         if options_type.lower() == 'call':
-            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) - strike_price * np.exp(
+            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
+                d1) - strike_price * np.exp(
                 -rate * maturity) * norm.cdf(d2)
         elif options_type.lower() == 'put':
             return strike_price * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying_price * np.exp(
@@ -49,10 +50,11 @@ class BSMBase(object):
         d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
                 vol * np.sqrt(maturity))
 
-        return np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) / (underlying_price * vol * np.sqrt(maturity))
+        return np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) / (
+                    underlying_price * vol * np.sqrt(maturity))
 
     @staticmethod
-    def BSM_VEGA(underlying_price, strike_price, maturity, rate, carry_cost, vol):
+    def BSM_veGA(underlying_price, strike_price, maturity, rate, carry_cost, vol):
         d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
                 vol * np.sqrt(maturity))
 
@@ -114,7 +116,8 @@ class BSMBase(object):
         d2 = d1 - vol * np.sqrt(calendar_time)
 
         if options_type.lower() == 'call':
-            return underlying_price * np.exp((carry_cost - rate) * trading_time) * norm.cdf(d1) - strike_price * np.exp(
+            return underlying_price * np.exp((carry_cost - rate) * trading_time) * norm.cdf(
+                d1) - strike_price * np.exp(
                 -rate * trading_time) * norm.cdf(d2)
         elif options_type.lower() == 'put':
             return strike_price * np.exp(-rate * trading_time) * norm.cdf(-d2) - underlying_price * np.exp(
@@ -130,7 +133,8 @@ class BSMBase(object):
         result = 0
         for i in range(step):
             vi = np.sqrt(z ** 2 + delta ** 2 * (i / maturity))
-            result += np.exp(-lambda1 * maturity) * (lambda1 * maturity) ** i / np.math.factorial(i) * BSMBase.BSM(
+            result += np.exp(-lambda1 * maturity) * (lambda1 * maturity) ** i / np.math.factorial(
+                i) * BSMBase.BSM(
                 underlying_price, strike_price, maturity, rate, rate, vi, options_type)
         return result
 
@@ -165,7 +169,8 @@ class BSMBase(object):
         b2 = b1 - vol * np.sqrt(dividend_payout_time)
 
         return sx * norm.cdf(b1) + sx * CBND(a1, -b1, -np.sqrt(dividend_payout_time / maturity)) - \
-               strike_price * np.exp(-rate * maturity) * CBND(a2, -b2, -np.sqrt(dividend_payout_time / maturity)) - \
+               strike_price * np.exp(-rate * maturity) * CBND(a2, -b2,
+                                                                    -np.sqrt(dividend_payout_time / maturity)) - \
                (strike_price - dividend) * np.exp(-rate * dividend_payout_time) * norm.cdf(b2)
 
     @staticmethod
@@ -216,12 +221,13 @@ class BSMBase(object):
                 if underlying_price > I:
                     return underlying_price - strike_price
                 else:
-                    return alpha * underlying_price ** beta - alpha * phi(underlying_price, maturity, beta, I, I, rate, carry_cost,
-                                                                  vol) + \
-                       phi(underlying_price, maturity, 1, I, I, rate, carry_cost, vol) -  phi(
-                    underlying_price, maturity, 1, strike_price, I, rate, carry_cost, vol) - \
-                       strike_price * phi(underlying_price, maturity, 0, I, I, rate, carry_cost, vol) + \
-                       strike_price * phi(underlying_price, maturity, 0, strike_price, I, rate, carry_cost, vol)
+                    return alpha * underlying_price ** beta - alpha * phi(underlying_price, maturity, beta, I, I, rate,
+                                                                          carry_cost,
+                                                                          vol) + \
+                           phi(underlying_price, maturity, 1, I, I, rate, carry_cost, vol) - phi(
+                        underlying_price, maturity, 1, strike_price, I, rate, carry_cost, vol) - \
+                           strike_price * phi(underlying_price, maturity, 0, I, I, rate, carry_cost, vol) + \
+                           strike_price * phi(underlying_price, maturity, 0, strike_price, I, rate, carry_cost, vol)
         elif options_type.lower() == 'put':
             rate = rate - carry_cost
             carry_cost = -carry_cost
@@ -237,10 +243,66 @@ class BSMBase(object):
             else:
                 return alpha * strike_price ** beta - alpha * phi(strike_price, maturity, beta, I, I, rate, carry_cost,
                                                                   vol) + \
-                       phi(strike_price, maturity, 1, I, I, rate, carry_cost, vol) -  phi(
+                       phi(strike_price, maturity, 1, I, I, rate, carry_cost, vol) - phi(
                     strike_price, maturity, 1, underlying_price, I, rate, carry_cost, vol) - \
                        underlying_price * phi(strike_price, maturity, 0, I, I, rate, carry_cost, vol) + \
                        underlying_price * phi(strike_price, maturity, 0, underlying_price, I, rate, carry_cost, vol)
+
+    @staticmethod
+    def BSM_MSCOMMODITY_OPTION(pt, ft, strike_price, t1, t2, vs, ve, vf, rhose, rhosf,
+                               rhoef, kappae, kappaf, options_type='call'):
+        """
+        BSM based commodity options pricing model
+        :param pt: zero_bond_price
+        :param ft: futures_price
+        :param strike_price: strike_price
+        :param t1: option_maturity
+        :param t2: futures contract_maturity
+        :param vs: spot_commodity_vol
+        :param ve: convenience_yield_vol
+        :param vf: forward_rate
+        :param rhose: rho_commodity_convenience_yield
+        :param rhosf: rho_commodity_forwad_rate
+        :param rhoef: rho_convenience_yield_forward_rate
+        :param kappae: mean_reversion_convenience_yield
+        :param kappaf: mean_reversion_forward_rate
+        :return: commidity options price
+        """
+
+        vz = vs ** 2 * t1 + 2 * vs * (vf * rhosf * 1 / kappaf * (
+                t1 - 1 / kappaf * np.exp(-kappaf * t2) * (np.exp(kappaf * t1) - 1)) - ve * rhose * 1 / kappae * (
+                                              t1 - 1 / kappae * np.exp(-kappae * t2) * (np.exp(kappae * t1) - 1)))
+        + ve ** 2 * 1 / kappae ** 2 * (t1 + 1 / (2 * kappae) * np.exp(-2 * kappae * t2) * (
+                np.exp(2 * kappae * t1) - 1) - 2 * 1 / kappae * np.exp(-kappae * t2) * (
+                                                   np.exp(kappae * t1) - 1)) \
+        + vf ** 2 * 1 / kappaf ** 2 * (
+                t1 + 1 / (2 * kappaf) * np.exp(-2 * kappaf * t2) * (
+                np.exp(2 * kappaf * t1) - 1) - 2 * 1 / kappaf * np.exp(
+            -kappaf * t2) * (np.exp(kappaf * t1) - 1)) - 2 * ve * vf * rhoef * 1 / kappae * 1 / kappaf * (
+                t1 - 1 / kappae * np.exp(-kappae * t2) * (np.exp(kappae * t1) - 1) - 1 / kappaf * np.exp(
+            -kappaf * t2) * (
+                        np.exp(kappaf * t1) - 1) + 1 / (kappae + kappaf) * np.exp(-(kappae + kappaf) * t2) * (
+                        np.exp((kappae + kappaf) * t1) - 1))
+
+        vxz = vf * 1 / kappaf * (vs * rhosf * (t1 - 1 / kappaf * (1 - np.exp(-kappaf * t1))) + vf * 1 / kappaf * (
+                    t1 - 1 / kappaf * np.exp(-kappaf * t2) * (np.exp(kappaf * t1) - 1) - 1 / kappaf * (
+                    1 - np.exp(-kappaf * t1)) + 1 / (2 * kappaf) * np.exp(-kappaf * t2) * (
+                                np.exp(kappaf * t1) - np.exp(-kappaf * t1))) - ve * rhoef * 1 / kappae * (
+                                             t1 - 1 / kappae * np.exp(-kappae * t2) * (
+                                             np.exp(kappae * t1) - 1) - 1 / kappaf * (
+                                                     1 - np.exp(-kappaf * t1)) + 1 / (kappae + kappaf) * np.exp(
+                                         -kappae * t2) * (np.exp(kappae * t1) - np.exp(-kappaf * t1))))
+
+        vz = np.sqrt(vz)
+        d1 = (np.log(ft / strike_price) - vxz + vz ** 2 / 2) / vz
+        d2 = (np.log(ft / strike_price) - vxz - vz ** 2 / 2) / vz
+
+        if options_type.lower() == 'call':
+            return pt * (ft * np.exp(-vxz) * norm.cdf(d1) - strike_price * norm.cdf(d2))
+        elif options_type.lower() == 'put':
+            return pt * (strike_price * norm.cdf(-d2) - ft * np.exp(-vxz) * norm.cdf(-d1))
+        else:
+            raise NotImplemented
 
 
 if __name__ == '__main__':
@@ -249,7 +311,7 @@ if __name__ == '__main__':
     print('call delta', BSMBase.BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
     print('put delta', BSMBase.BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
     print('gamma', BSMBase.BSM_GAMMA(60, 65, 0.25, 0.08, 0.08, 0.3))
-    print('vega', BSMBase.BSM_VEGA(60, 65, 0.25, 0.08, 0.08, 0.3))
+    print('vega', BSMBase.BSM_veGA(60, 65, 0.25, 0.08, 0.08, 0.3))
     print('call theta', BSMBase.BSM_THETA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
     print('put theta', BSMBase.BSM_THETA(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
     print('call rho', BSMBase.BSM_RHO(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
@@ -265,3 +327,9 @@ if __name__ == '__main__':
     print('ba usa put appro', BSMBase.BSM_USA_BAAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35, 'put'))
     print('bs usa call appro', BSMBase.BSM_USA_BSAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35))
     print('bs usa put appro', BSMBase.BSM_USA_BSAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35, 'put'))
+    print('commodity call',
+          BSMBase.BSM_MSCOMMODITY_OPTION(0.9753, 95, 95, 0.5, 1, 0.266, 0.249, 0.0096, 0.8050, 0.0964, 0.1243,
+                                         1.045, 0.2))
+    print('commodity put',
+          BSMBase.BSM_MSCOMMODITY_OPTION(0.9753, 95, 95, 0.5, 1, 0.266, 0.249, 0.0096, 0.8050, 0.0964, 0.1243,
+                                         1.045, 0.2, 'put'))
