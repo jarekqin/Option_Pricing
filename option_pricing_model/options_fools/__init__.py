@@ -5,6 +5,13 @@ from option_pricing_model.vanilla_options_model.analytic_model.bsm_based_class i
 
 
 def CBND(a, b, rho):
+    """
+    cumulative binominal normal distribution
+    :param a: params 1
+    :param b: params 2
+    :param rho: correlation between a and b
+    :return:
+    """
     x = [0.24840615, 0.39233107, 0.21141819, 0.03324666, 0.00082485334]
     y = [0.10024215, 0.48281397, 1.0609498, 1.7797294, 2.6697604]
     a1 = a / np.sqrt(2 * (1 - rho ** 2))
