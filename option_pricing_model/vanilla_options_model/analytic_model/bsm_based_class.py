@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
-from option_pricing_model.options_fools import *
+from option_pricing_model.options_fools.tools import *
 
 
 class BSMBase(object):
