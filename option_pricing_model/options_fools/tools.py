@@ -3,6 +3,7 @@ from scipy.stats import norm
 
 from option_pricing_model.vanilla_options_model.analytic_model.bsm_based_class import *
 
+
 def CBND(a, b, rho):
     """
     cumulative binominal normal distribution
@@ -19,9 +20,9 @@ def CBND(a, b, rho):
     if a <= 0 and b <= 0 and rho <= 0:
         result = 0
         for i in range(5):
-            for j in range(1, 5):
-                result = result + x[i] + x[j] * np.exp(
-                    a1 * (2 * y[i] - a1) + b1 * (2 * y[j] - b1) + 2 * rho * (y[i] - a1) * (y[j] - b1))
+            for j in range(5):
+                result = result + x[i] * x[j] * np.exp(a1 * (2 * y[i] - a1) + \
+                                                 b1 * (2 * y[j] - b1) + 2 * rho * (y[i] - a1) * (y[j] - b1))
         return np.sqrt(1 - rho ** 2) / np.pi * result
     elif a <= 0 and b >= 0 and rho >= 0:
         return norm.cdf(a) - CBND(a, -b, -rho)
@@ -104,20 +105,19 @@ def phi(underlying_price, maturity, gamma, H, I, rate, carry_cost, vol):
         d - 2 * np.log(I / underlying_price) / (vol * np.sqrt(maturity))))
 
 
-
 def CriticalValueChooser(underlying_price, strike_price_call, strike_price_put, chooser_time, maturity_call,
-                        maturity_put, rate, carry_cost, vol):
+                         maturity_put, rate, carry_cost, vol):
     Sv = underlying_price
-    ci = BSMBase.BSM( Sv, strike_price_call, maturity_call - chooser_time, rate,carry_cost, vol)
-    Pi = BSMBase.BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol,'put')
+    ci = BSMBase.BSM(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
+    Pi = BSMBase.BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
     dc = BSMBase.BSM_DELTA(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
-    dp = BSMBase.BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol,'put')
+    dp = BSMBase.BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
     yi = ci - Pi
     di = dc - dp
     epsilon = 0.001
     while abs(yi) > epsilon:
         Sv = Sv - (yi) / di
-        ci = BSMBase.BSM( Sv, strike_price_call, maturity_call - chooser_time, rate,carry_cost, vol)
+        ci = BSMBase.BSM(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
         Pi = BSMBase.BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
         dc = BSMBase.BSM_DELTA(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
         dp = BSMBase.BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
@@ -126,3 +126,16 @@ def CriticalValueChooser(underlying_price, strike_price_call, strike_price_put, 
 
     return Sv
 
+
+def CriticalValueOptionsOnOptions(strike_price1, strike_price2, maturity, rate, carray_cost, vol, options_type):
+    Si = strike_price1
+    ci = BSMBase.BSM(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+    di = BSMBase.BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+    epsilon = 0.000001
+
+    while abs(ci - strike_price2) > epsilon:
+        Si = Si - (ci - strike_price2) / di
+        ci = BSMBase.BSM(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+        di = BSMBase.BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+
+    return Si
