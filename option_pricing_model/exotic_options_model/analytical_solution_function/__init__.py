@@ -136,7 +136,7 @@ class ExoticOPtions(object):
         :param options_type: call/put
         :return: options price
         """
-        if options_type.lower() == 'cc' or options_type.lower() =='pc':
+        if options_type.lower() == 'cc' or options_type.lower() == 'pc':
             underlying_options_type = 'call'
         else:
             underlying_options_type = 'put'
@@ -170,6 +170,31 @@ class ExoticOPtions(object):
         else:
             raise TypeError
 
+    @staticmethod
+    def Extendible_Options(
+            underlying_price, strike_price, extendible_strike_price, maturity, extendible_maturity,
+            rate, carry_cost, vol, options_type):
+        rho = np.sqrt(maturity / extendible_maturity)
+        z1 = (np.log(underlying_price / extendible_strike_price) + (
+                carry_cost + vol ** 2 / 2) * extendible_maturity) / (vol * np.sqrt(extendible_maturity))
+        z2 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+        if options_type.lower() == 'call':
+            return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
+                   underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(z1, -z2, -rho) - \
+                   extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
+                z1 - np.sqrt(vol ** 2 * extendible_maturity),
+                -z2 + np.sqrt(vol ** 2 * maturity), -rho)
+        elif options_type.lower() == 'put':
+            return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
+                   extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
+                -z1 + np.sqrt(vol ** 2 * extendible_maturity),
+                z2 - np.sqrt(vol ** 2 * maturity), -rho) - \
+                   underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(-z1, z2, -rho)
+        else:
+            raise NotImplemented
+
+
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
     print('execution stock put options',
@@ -183,10 +208,14 @@ if __name__ == '__main__':
     print('complex chooser options',
           ExoticOPtions.Chooser_Options(50, 55, 48, 0.25, 0.5, 0.5833, 0.1, 0.05, 0.35, 'complex'))
     print('cp options on options',
-          ExoticOPtions.Options_On_Options(500,520,50,0.25,0.5,0.08,0.05,0.35,'cc'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'cc'))
     print('cp options on options',
-          ExoticOPtions.Options_On_Options(500,520,50,0.25,0.5,0.08,0.05,0.35,'cp'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'cp'))
     print('pp options on options',
-          ExoticOPtions.Options_On_Options(500,520,50,0.25,0.5,0.08,0.05,0.35,'pp'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'pp'))
     print('pc options on options',
-          ExoticOPtions.Options_On_Options(500,520,50,0.25,0.5,0.08,0.05,0.35,'pc'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'pc'))
+    print('extendible call options',
+          ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'call'))
+    print('extendible put options',
+          ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'put'))
