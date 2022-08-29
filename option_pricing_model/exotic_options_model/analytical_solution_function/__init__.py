@@ -194,6 +194,28 @@ class ExoticOPtions(object):
         else:
             raise NotImplemented
 
+    @staticmethod
+    def Two_Asset_Corr_Options(underlying_price1, underlying_price2, strike_price1, strike_price2, maturity,
+                               rate, carry_cost1, carry_cost2, vol1, vol2, correlation, options_type):
+        y1 = (np.log(underlying_price1 / strike_price1) + (carry_cost1 - vol1 ** 2 / 2) * maturity) / (
+                vol1 * np.sqrt(maturity))
+        y2 = (np.log(underlying_price2 / strike_price2) + (carry_cost2 - vol2 ** 2 / 2) * maturity) / (
+                vol2 * np.sqrt(maturity))
+        if options_type.lower() == 'call':
+            return underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(y2 + vol2 * np.sqrt(maturity),
+                                                                                      y1 + correlation * vol2 * np.sqrt(
+                                                                                          maturity),
+                                                                                      correlation) - strike_price2 * \
+                   np.exp(-rate * maturity) * CBND(y2, y1, correlation)
+
+        elif options_type.lower() == 'put':
+            return strike_price2 * np.exp(-rate * maturity) * CBND(-y2, -y1, correlation) - \
+                   underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(-y2 - vol2 * np.sqrt(maturity),
+                                                                                      -y1 - correlation * vol2 * np.sqrt(
+                                                                                          maturity), correlation)
+        else:
+            raise NotImplemented
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -219,3 +241,7 @@ if __name__ == '__main__':
           ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'call'))
     print('extendible put options',
           ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'put'))
+    print('w assets correlation call options',
+          ExoticOPtions.Two_Asset_Corr_Options(52, 65, 50, 70, 0.5, 0.1, 0.1, 0.1, 0.2, 0.3, 0.75, 'call'))
+    print('extendible put options',
+          ExoticOPtions.Two_Asset_Corr_Options(52, 65, 50, 70, 0.5, 0.1, 0.1, 0.1, 0.2, 0.3, 0.75, 'put'))
