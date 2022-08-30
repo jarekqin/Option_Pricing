@@ -2,9 +2,7 @@ import numpy as np
 
 from scipy.stats import norm
 
-from option_pricing_model.options_fools.tools import CBND, Kc, kp, CriticalValueOptionsOnOptions, CriticalValueChooser
-from option_pricing_model.vanilla_options_model.bsm_base import BSM
-from option_pricing_model.vanilla_options_model.analytic_model.bsm_pricing import BSMPricingModule
+from option_pricing_model.options_tools.tools import *
 
 
 class ExoticOPtions(object):
@@ -23,8 +21,8 @@ class ExoticOPtions(object):
         :param options_type: call/put
         :return: options price
         """
-        return np.exp(- lambda1 * maturity) * BSM(underlying_price, strike_price, maturity, rate, carry_cost,
-                                                  vol, options_type)
+        return np.exp(- lambda1 * maturity) * BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost,
+                                                          vol, options_type)
 
     @staticmethod
     def Forward_Options(underlying_price, alpha, forward_time, maturity, rate, carry_cost, vol, options_type='call'):
@@ -40,7 +38,7 @@ class ExoticOPtions(object):
         :param options_type: call/put
         :return: options price
         """
-        return underlying_price * np.exp((carry_cost - rate) * forward_time) * BSM(
+        return underlying_price * np.exp((carry_cost - rate) * forward_time) * BSMBase.BSM(
             1, alpha, maturity - forward_time, rate, carry_cost, vol, options_type)
 
     @staticmethod
@@ -176,32 +174,19 @@ class ExoticOPtions(object):
     def Extendible_Options(
             underlying_price, strike_price, extendible_strike_price, maturity, extendible_maturity,
             rate, carry_cost, vol, options_type):
-        """
-        extendible options pricing module
-        :param underlying_price: underlying price
-        :param strike_price: strike price on options
-        :param extendible_strike_price: extendible strike price
-        :param maturity: maturity on optins
-        :param extendible_maturity: extendible maturity on options
-        :param rate: risk-free rate
-        :param carry_cost: carry cost
-        :param vol: volatility
-        :param options_type: call/put
-        :return: options price
-        """
         rho = np.sqrt(maturity / extendible_maturity)
         z1 = (np.log(underlying_price / extendible_strike_price) + (
                 carry_cost + vol ** 2 / 2) * extendible_maturity) / (vol * np.sqrt(extendible_maturity))
         z2 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
                 vol * np.sqrt(maturity))
         if options_type.lower() == 'call':
-            return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
+            return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
                    underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(z1, -z2, -rho) - \
                    extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
                 z1 - np.sqrt(vol ** 2 * extendible_maturity),
                 -z2 + np.sqrt(vol ** 2 * maturity), -rho)
         elif options_type.lower() == 'put':
-            return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
+            return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
                    extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
                 -z1 + np.sqrt(vol ** 2 * extendible_maturity),
                 z2 - np.sqrt(vol ** 2 * maturity), -rho) - \
@@ -212,22 +197,6 @@ class ExoticOPtions(object):
     @staticmethod
     def Two_Asset_Corr_Options(underlying_price1, underlying_price2, strike_price1, strike_price2, maturity,
                                rate, carry_cost1, carry_cost2, vol1, vol2, correlation, options_type):
-        """
-        2 asset correlation options
-        :param underlying_price1: underlying asset 1 price
-        :param underlying_price2: underlying asset 2 price
-        :param strike_price1: strike price 1
-        :param strike_price2: strike price 2
-        :param maturity: maturity
-        :param rate: risk-free rate
-        :param carry_cost1: carry cost 1
-        :param carry_cost2: carry cost 2
-        :param vol1: volatility 1
-        :param vol2: volatitlity 2
-        :param correlation: correlation between 2 assets
-        :param options_type: call/put
-        :return: options price
-        """
         y1 = (np.log(underlying_price1 / strike_price1) + (carry_cost1 - vol1 ** 2 / 2) * maturity) / (
                 vol1 * np.sqrt(maturity))
         y2 = (np.log(underlying_price2 / strike_price2) + (carry_cost2 - vol2 ** 2 / 2) * maturity) / (
@@ -244,39 +213,6 @@ class ExoticOPtions(object):
                    underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(-y2 - vol2 * np.sqrt(maturity),
                                                                                       -y1 - correlation * vol2 * np.sqrt(
                                                                                           maturity), correlation)
-        else:
-            raise NotImplemented
-
-    @staticmethod
-    def Asset_Exchange_Options(underlying_price1, underlying_price2, num_1, num_2, maturity, rate, carry_cost1,
-                               carry_cost2, vol1, vol2, correlation, options_model):
-        """
-        asset exchange options
-        :param underlying_price1:underlying asset 1 price
-        :param underlying_price2: underlying asset 2 price
-        :param num_1: quantity on asset 1
-        :param num_2: quantity on asset 2
-        :param maturity:maturity on options
-        :param rate:risk-free rate
-        :param carry_cost1:carry cost 1
-        :param carry_cost2:carry cost 2
-        :param vol1:volatility 1
-        :param vol2:volatillity 2
-        :param correlation:correlation between 2 assets
-        :param options_model:eu/usa
-        :return:
-        """
-        if options_model.lower() == 'eu':
-            v = np.sqrt(vol1 ** 2 + vol2 ** 2 - 2 * correlation * vol1 * vol2)
-            d1 = (np.log(num_1 * underlying_price1 / (num_2 * underlying_price2)) + (
-                    carry_cost1 - carry_cost2 + v ** 2 / 2) * maturity) / (v * np.sqrt(maturity))
-            d2 = d1 - v * np.sqrt(maturity)
-            return num_1 * underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * norm.cdf(
-                d1) - num_2 * underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * norm.cdf(d2)
-        elif options_model.lower() == 'usa':
-            v = np.sqrt(vol1 ** 2 + vol2 ** 2 - 2 * correlation * vol1 * vol2)
-            return BSMPricingModule.BSM_USA_BSAPPROX(num_1 * underlying_price1, num_2 * underlying_price2, maturity,
-                                                     rate - carry_cost2, carry_cost1 - carry_cost2, v, 'call')
         else:
             raise NotImplemented
 
@@ -305,11 +241,7 @@ if __name__ == '__main__':
           ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'call'))
     print('extendible put options',
           ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'put'))
-    print('2 assets correlation call options',
+    print('w assets correlation call options',
           ExoticOPtions.Two_Asset_Corr_Options(52, 65, 50, 70, 0.5, 0.1, 0.1, 0.1, 0.2, 0.3, 0.75, 'call'))
     print('extendible put options',
           ExoticOPtions.Two_Asset_Corr_Options(52, 65, 50, 70, 0.5, 0.1, 0.1, 0.1, 0.2, 0.3, 0.75, 'put'))
-    print('asset exchange eu options',
-          ExoticOPtions.Asset_Exchange_Options(101, 104, 1, 1, 0.5, 0.1, 0.02, 0.04, 0.18, 0.12, 0.8, 'eu'))
-    print('extendible put options',
-          ExoticOPtions.Asset_Exchange_Options(101, 104, 1, 1, 0.5, 0.1, 0.02, 0.04, 0.18, 0.12, 0.8, 'usa'))
