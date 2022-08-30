@@ -1,7 +1,7 @@
 import sys
 
-from option_pricing_model.vanilla_options_model.basic_class.abstract_basic import BasicFiniteDifferences
-from option_pricing_model.vanilla_options_model.basic_class.finite_difference_basic_class import \
+from option_pricing_model.vanilla_options_model.tree_model.basic_class import BasicFiniteDifferences
+from option_pricing_model.vanilla_options_model.tree_model.basic_class import \
     FiniteDifferenceBasicClass
 import numpy as np
 import scipy.linalg as linalg

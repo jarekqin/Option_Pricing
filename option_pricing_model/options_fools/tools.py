@@ -1,8 +1,7 @@
 import numpy as np
 from scipy.stats import norm
 
-from option_pricing_model.vanilla_options_model.analytic_model.bsm_based_class import *
-
+from option_pricing_model.vanilla_options_model.bsm_base import BSM,BSM_DELTA
 
 def CBND(a, b, rho):
     """
@@ -51,7 +50,7 @@ def Kc(strike, maturity, rate, carry_cost, vol):
     d1 = (np.log(si / strike) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
     q2 = (-(n - 1) + np.sqrt((n - 1) ** 2 + 4 * k)) / 2
     lhs = si - strike
-    rhs = BSMBase.BSM(si, strike, maturity, rate, carry_cost, vol) + (
+    rhs = BSM(si, strike, maturity, rate, carry_cost, vol) + (
             1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(d1)) * si / q2
     bi = np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) * (1 - 1 / q2) + (
             1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) / (vol * np.sqrt(maturity))) / q2
@@ -61,7 +60,7 @@ def Kc(strike, maturity, rate, carry_cost, vol):
         si = (strike + rhs - bi * si) / (1 - bi)
         d1 = (np.log(si / strike) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
         lhs = si - strike
-        rhs = BSMBase.BSM(si, strike, maturity, rate, carry_cost, vol) + (
+        rhs = BSM(si, strike, maturity, rate, carry_cost, vol) + (
                 1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(d1)) * si / q2
         bi = np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) * (1 - 1 / q2) + (
                 1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) / (vol * np.sqrt(maturity))) / q2
@@ -80,7 +79,7 @@ def kp(strike, maturity, rate, carry_cost, vol):
     d1 = (np.log(si / strike) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
     q1 = (-(n - 1) - np.sqrt((n - 1) ** 2 + 4 * k)) / 2
     lhs = strike - si
-    rhs = BSMBase.BSM(si, strike, maturity, rate, carry_cost, vol, 'put') - (
+    rhs = BSM(si, strike, maturity, rate, carry_cost, vol, 'put') - (
             1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1)) * si / q1
     bi = -np.exp((carry_cost - rate) * maturity) + norm.cdf(-d1) * (1 - 1 / q1) - (
             1 + np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1) / (vol * np.sqrt(maturity))) / q1
@@ -90,7 +89,7 @@ def kp(strike, maturity, rate, carry_cost, vol):
         si = (strike - rhs + bi * si) / (1 + bi)
         d1 = (np.log(si / strike) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
         lhs = strike - si
-        rhs = BSMBase.BSM(si, strike, maturity, rate, carry_cost, vol, 'put') - (
+        rhs = BSM(si, strike, maturity, rate, carry_cost, vol, 'put') - (
                 1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1)) * si / q1
         bi = -np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1) * (1 - 1 / q1) - (
                 1 + np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1) / (vol * np.sqrt(maturity))) / q1
@@ -105,22 +104,23 @@ def phi(underlying_price, maturity, gamma, H, I, rate, carry_cost, vol):
         d - 2 * np.log(I / underlying_price) / (vol * np.sqrt(maturity))))
 
 
+
 def CriticalValueChooser(underlying_price, strike_price_call, strike_price_put, chooser_time, maturity_call,
                          maturity_put, rate, carry_cost, vol):
     Sv = underlying_price
-    ci = BSMBase.BSM(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
-    Pi = BSMBase.BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
-    dc = BSMBase.BSM_DELTA(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
-    dp = BSMBase.BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
+    ci = BSM(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
+    Pi = BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
+    dc = BSM_DELTA(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
+    dp = BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
     yi = ci - Pi
     di = dc - dp
     epsilon = 0.001
     while abs(yi) > epsilon:
         Sv = Sv - (yi) / di
-        ci = BSMBase.BSM(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
-        Pi = BSMBase.BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
-        dc = BSMBase.BSM_DELTA(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
-        dp = BSMBase.BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
+        ci = BSM(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
+        Pi = BSM(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
+        dc = BSM_DELTA(Sv, strike_price_call, maturity_call - chooser_time, rate, carry_cost, vol)
+        dp = BSM_DELTA(Sv, strike_price_put, maturity_put - chooser_time, rate, carry_cost, vol, 'put')
         yi = ci - Pi
         di = dc - dp
 
@@ -129,13 +129,13 @@ def CriticalValueChooser(underlying_price, strike_price_call, strike_price_put, 
 
 def CriticalValueOptionsOnOptions(strike_price1, strike_price2, maturity, rate, carray_cost, vol, options_type):
     Si = strike_price1
-    ci = BSMBase.BSM(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
-    di = BSMBase.BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+    ci = BSM(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+    di = BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
     epsilon = 0.000001
 
     while abs(ci - strike_price2) > epsilon:
         Si = Si - (ci - strike_price2) / di
-        ci = BSMBase.BSM(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
-        di = BSMBase.BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+        ci = BSM(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
+        di = BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
 
     return Si

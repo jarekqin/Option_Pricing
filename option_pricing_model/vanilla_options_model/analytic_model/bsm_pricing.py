@@ -1,177 +1,9 @@
-import numpy as np
-from scipy.stats import norm
-
 from option_pricing_model.options_fools.tools import *
+from option_pricing_model.vanilla_options_model.bsm_base import  BSM_ORIGINAL
 
+import numpy as np
 
-class BSMBase(object):
-    @staticmethod
-    def BSM_ORIGINAL(underlying_price, strike_price, maturity, rate, vol, options_type='call'):
-        """
-        BSM options original version
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :param options_type: 'call'/'put'
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (rate + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-        d2 = d1 - vol * np.sqrt(maturity)
-
-        if options_type.lower() == 'call':
-            return underlying_price * norm.cdf(d1) - strike_price * np.exp(-rate * maturity) * norm.cdf(d2)
-        elif options_type.lower() == 'put':
-            return strike_price * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying_price * norm.cdf(-d1)
-        else:
-            raise NotImplemented
-
-    @staticmethod
-    def BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
-        """
-        BSM options with carry_cost version
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :param options_type: 'call'/'put'
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-        d2 = d1 - vol * np.sqrt(maturity)
-
-        if options_type.lower() == 'call':
-            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
-                d1) - strike_price * np.exp(
-                -rate * maturity) * norm.cdf(d2)
-        elif options_type.lower() == 'put':
-            return strike_price * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying_price * np.exp(
-                (carry_cost - rate) * maturity) * norm.cdf(-d1)
-        else:
-            raise NotImplemented
-
-    @staticmethod
-    def BSM_DELTA(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
-        """
-        BSM options delta greek
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :param options_type: 'call'/'put'
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-        if options_type.lower() == 'call':
-            return np.exp((carry_cost - rate) * maturity) * norm.cdf(d1)
-        elif options_type.lower() == 'put':
-            return np.exp((carry_cost - rate) * maturity) * (norm.cdf(d1) - 1)
-        else:
-            raise NotImplemented
-
-    @staticmethod
-    def BSM_GAMMA(underlying_price, strike_price, maturity, rate, carry_cost, vol):
-        """
-        BSM options gamma greek
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-
-        return np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) / (
-                    underlying_price * vol * np.sqrt(maturity))
-
-    @staticmethod
-    def BSM_VEGA(underlying_price, strike_price, maturity, rate, carry_cost, vol):
-        """
-        BSM options vega greek
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-
-        return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) * np.sqrt(maturity)
-
-    @staticmethod
-    def BSM_THETA(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
-        """
-        BSM options theta greek
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :param options_type: 'call'/'put'
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-        d2 = d1 - vol * np.sqrt(maturity)
-
-        if options_type.lower() == 'call':
-            return -underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) * vol / (
-                    2 * np.sqrt(maturity)) - (carry_cost - rate) * underlying_price * np.exp(
-                (carry_cost - rate) * maturity) * norm.cdf(d1) - rate * strike_price * np.exp(
-                -rate * maturity) * norm.cdf(d2)
-        elif options_type.lower() == 'put':
-            return -underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) * vol / (
-                    2 * np.sqrt(maturity)) + (carry_cost - rate) * underlying_price * np.exp(
-                (carry_cost - rate) * maturity) * norm.cdf(-d1) + rate * strike_price * np.exp(
-                -rate * maturity) * norm.cdf(-d2)
-        else:
-            raise NotImplemented
-
-    @staticmethod
-    def BSM_RHO(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
-        """
-        BSM options rho greek
-        :param underlying_price: underlying price on optins
-        :param strike_price: strike price of options
-        :param maturity: options maturity
-        :param rate: risk-free rate
-        :param carry_cost: carry out fee
-        :param vol: volatility
-        :param options_type: 'call'/'put'
-        :return: options price
-        """
-        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
-                vol * np.sqrt(maturity))
-        d2 = d1 - vol * np.sqrt(maturity)
-        if options_type.lower() == 'call':
-            if carry_cost != 0:
-                return maturity * strike_price * np.exp(-rate * maturity) * norm.cdf(d2)
-            else:
-                return -maturity * BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'call')
-        elif options_type.lower() == 'put':
-            if carry_cost != 0:
-                return -maturity * strike_price * np.exp(-rate * maturity) * norm.cdf(-d2)
-            else:
-                return -maturity * BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'put')
-        else:
-            raise NotImplemented
-
+class BSMPricingModule(object):
     @staticmethod
     def BSM_CARRAY(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
         """
@@ -245,7 +77,7 @@ class BSMBase(object):
         for i in range(step):
             vi = np.sqrt(z ** 2 + delta ** 2 * (i / maturity))
             result += np.exp(-lambda1 * maturity) * (lambda1 * maturity) ** i / np.math.factorial(
-                i) * BSMBase.BSM(
+                i) * BSM(
                 underlying_price, strike_price, maturity, rate, rate, vi, options_type)
         return result
 
@@ -265,25 +97,25 @@ class BSMBase(object):
         epsilon = 1e-5
         sx = underlying_price - dividend * np.exp(-rate * dividend_payout_time)
         if dividend <= strike_price * (1 - np.exp(-rate * (maturity - dividend_payout_time))):
-            return BSMBase.BSM_ORIGINAL(sx, strike_price, maturity, rate, vol, 'call')
-        ci = BSMBase.BSM_ORIGINAL(underlying_price, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
+            return BSM_ORIGINAL(sx, strike_price, maturity, rate, vol, 'call')
+        ci = BSM_ORIGINAL(underlying_price, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
         highs = underlying_price
         while (ci - highs - dividend + strike_price) > 0 and highs < infinity:
             highs *= 2
-            ci = BSMBase.BSM_ORIGINAL(highs, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
+            ci = BSM_ORIGINAL(highs, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
         if highs > infinity:
-            return BSMBase.BSM_ORIGINAL(sx, strike_price, maturity, rate, vol, 'call')
+            return BSM_ORIGINAL(sx, strike_price, maturity, rate, vol, 'call')
 
         lows = 0
         i = highs * 0.5
-        ci = BSMBase.BSM_ORIGINAL(i, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
+        ci = BSM_ORIGINAL(i, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
         while abs(ci - i - dividend + strike_price) > epsilon and highs - lows > epsilon:
             if (ci - i - dividend + strike_price) < 0:
                 highs = i
             else:
                 lows = i
             i = (highs + lows) / 2
-            ci = BSMBase.BSM_ORIGINAL(i, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
+            ci = BSM_ORIGINAL(i, strike_price, maturity - dividend_payout_time, rate, vol, 'call')
         a1 = (np.log(sx / strike_price) + (rate + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
         a2 = a1 - vol * np.sqrt(maturity)
         b1 = (np.log(sx / i) + (rate + vol ** 2 / 2) * dividend_payout_time) / (vol * np.sqrt(dividend_payout_time))
@@ -309,7 +141,7 @@ class BSMBase(object):
         """
         if options_type.lower() == 'call':
             if carry_cost >= rate:
-                return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type)
+                return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type)
             else:
                 sk = Kc(strike_price, maturity, rate, carry_cost, vol)
                 n = 2 * carry_cost / vol ** 2
@@ -318,7 +150,7 @@ class BSMBase(object):
                 q2 = (-(n - 1) + np.sqrt((n - 1) ** 2 + 4 * k)) / 2
                 a2 = (sk / q2) * (1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(d1))
                 if underlying_price < sk:
-                    return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol) + a2 * (
+                    return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol) + a2 * (
                             underlying_price / sk) ** q2
                 else:
                     return underlying_price - strike_price
@@ -332,7 +164,7 @@ class BSMBase(object):
             a1 = -(sk / q1) * (1 - np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1))
 
             if underlying_price > sk:
-                return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol,
+                return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol,
                                    options_type) + a1 * (underlying_price / sk) ** q1
             else:
                 return strike_price - underlying_price
@@ -352,7 +184,7 @@ class BSMBase(object):
         """
         if options_type.lower() == 'call':
             if carry_cost >= rate:
-                return BSMBase.BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type)
+                return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type)
             else:
                 beta = (1 / 2 - carry_cost / vol ** 2) + np.sqrt(
                     (carry_cost / vol ** 2 - 1 / 2) ** 2 + 2 * rate / vol ** 2)
@@ -449,30 +281,20 @@ class BSMBase(object):
 
 
 if __name__ == '__main__':
-    print(BSMBase.BSM(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
-    print(BSMBase.BSM(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
-    print('call delta', BSMBase.BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
-    print('put delta', BSMBase.BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
-    print('gamma', BSMBase.BSM_GAMMA(60, 65, 0.25, 0.08, 0.08, 0.3))
-    print('vega', BSMBase.BSM_VEGA(60, 65, 0.25, 0.08, 0.08, 0.3))
-    print('call theta', BSMBase.BSM_THETA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
-    print('put theta', BSMBase.BSM_THETA(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
-    print('call rho', BSMBase.BSM_RHO(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
-    print('put rho', BSMBase.BSM_RHO(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
-    print('call carry', BSMBase.BSM_CARRAY(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
-    print('put carry', BSMBase.BSM_CARRAY(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
-    print('call french', BSMBase.BSM_FRENCH(70, 75, 0.41, 0.4, 0.08, 0.08, 0.3, 'call'))
-    print('put french', BSMBase.BSM_FRENCH(70, 75, 0.41, 0.4, 0.08, 0.08, 0.3, 'put'))
-    print('call jump', BSMBase.BSM_JUMP_DIFFUS(45, 55, 0.25, 0.1, 0.25, 4, 0.4, 'call'))
-    print('put jump', BSMBase.BSM_JUMP_DIFFUS(45, 55, 0.25, 0.1, 0.25, 4, 0.4, 'put'))
-    print('usa option', BSMBase.BSM_USA(90, 80, 0.25, 0.33, 0.06, 4, 0.3))
-    print('ba usa call appro', BSMBase.BSM_USA_BAAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35))
-    print('ba usa put appro', BSMBase.BSM_USA_BAAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35, 'put'))
-    print('bs usa call appro', BSMBase.BSM_USA_BSAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35))
-    print('bs usa put appro', BSMBase.BSM_USA_BSAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35, 'put'))
+    print('call carry', BSMPricingModule.BSM_CARRAY(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
+    print('put carry', BSMPricingModule.BSM_CARRAY(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
+    print('call french', BSMPricingModule.BSM_FRENCH(70, 75, 0.41, 0.4, 0.08, 0.08, 0.3, 'call'))
+    print('put french', BSMPricingModule.BSM_FRENCH(70, 75, 0.41, 0.4, 0.08, 0.08, 0.3, 'put'))
+    print('call jump', BSMPricingModule.BSM_JUMP_DIFFUS(45, 55, 0.25, 0.1, 0.25, 4, 0.4, 'call'))
+    print('put jump', BSMPricingModule.BSM_JUMP_DIFFUS(45, 55, 0.25, 0.1, 0.25, 4, 0.4, 'put'))
+    print('usa option', BSMPricingModule.BSM_USA(90, 80, 0.25, 0.33, 0.06, 4, 0.3))
+    print('ba usa call appro', BSMPricingModule.BSM_USA_BAAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35))
+    print('ba usa put appro', BSMPricingModule.BSM_USA_BAAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35, 'put'))
+    print('bs usa call appro', BSMPricingModule.BSM_USA_BSAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35))
+    print('bs usa put appro', BSMPricingModule.BSM_USA_BSAPPROX(42, 40, 0.75, 0.04, -0.04, 0.35, 'put'))
     print('commodity call',
-          BSMBase.BSM_MSCOMMODITY_OPTION(0.9753, 95, 95, 0.5, 1, 0.266, 0.249, 0.0096, 0.8050, 0.0964, 0.1243,
+          BSMPricingModule.BSM_MSCOMMODITY_OPTION(0.9753, 95, 95, 0.5, 1, 0.266, 0.249, 0.0096, 0.8050, 0.0964, 0.1243,
                                          1.045, 0.2))
     print('commodity put',
-          BSMBase.BSM_MSCOMMODITY_OPTION(0.9753, 95, 95, 0.5, 1, 0.266, 0.249, 0.0096, 0.8050, 0.0964, 0.1243,
+          BSMPricingModule.BSM_MSCOMMODITY_OPTION(0.9753, 95, 95, 0.5, 1, 0.266, 0.249, 0.0096, 0.8050, 0.0964, 0.1243,
                                          1.045, 0.2, 'put'))
