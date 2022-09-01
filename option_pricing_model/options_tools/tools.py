@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.stats import norm
 
-from option_pricing_model.vanilla_options_model.bsm_base import BSM,BSM_DELTA
+from option_pricing_model.vanilla_options_model.bsm_base import BSM, BSM_DELTA
+
 
 def CBND(a, b, rho):
     """
@@ -21,7 +22,7 @@ def CBND(a, b, rho):
         for i in range(5):
             for j in range(5):
                 result = result + x[i] * x[j] * np.exp(a1 * (2 * y[i] - a1) + \
-                                                 b1 * (2 * y[j] - b1) + 2 * rho * (y[i] - a1) * (y[j] - b1))
+                                                       b1 * (2 * y[j] - b1) + 2 * rho * (y[i] - a1) * (y[j] - b1))
         return np.sqrt(1 - rho ** 2) / np.pi * result
     elif a <= 0 and b >= 0 and rho >= 0:
         return norm.cdf(a) - CBND(a, -b, -rho)
@@ -104,7 +105,6 @@ def phi(underlying_price, maturity, gamma, H, I, rate, carry_cost, vol):
         d - 2 * np.log(I / underlying_price) / (vol * np.sqrt(maturity))))
 
 
-
 def CriticalValueChooser(underlying_price, strike_price_call, strike_price_put, chooser_time, maturity_call,
                          maturity_put, rate, carry_cost, vol):
     Sv = underlying_price
@@ -139,3 +139,38 @@ def CriticalValueOptionsOnOptions(strike_price1, strike_price2, maturity, rate, 
         di = BSM_DELTA(Si, strike_price1, maturity, rate, carray_cost, vol, options_type)
 
     return Si
+
+
+def CriticalPrice(id_, I1, t1, t2, v, q):
+    Ii = I1
+    yi = CriticalPart3(id_, Ii, t1, t2, v)
+    di = CriticalPart2(id_, Ii, t1, t2, v)
+    epsilon = 1e-5
+    while abs(yi - q) > epsilon:
+        Ii = Ii - (yi - q) / di
+        yi = CriticalPart3(id_, Ii, t1, t2, v)
+        di = CriticalPart2(id_, Ii, t1, t2, v)
+    return Ii
+
+
+def CriticalPart2(id_, I, t1, t2, v):
+    if id_ == 1:
+        z1 = (np.log(I) + v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
+        return norm.cdf(z1)
+    elif id_ == 2:
+        z2 = (-np.log(I) - v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
+        return -norm.cdf(z2)
+    else:
+        raise NotImplemented
+
+def CriticalPart3(id_, I, t1, t2, v):
+    if id_ == 1:
+        z1 = (np.log(I) + v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
+        z2 = (np.log(I) - v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
+        return I * norm.cdf(z1) - norm.cdf(z2)
+    elif id_ == 2:
+        z1 = (-np.log(I) + v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
+        z2 = (-np.log(I) - v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
+        return norm.cdf(z1) - I * norm.cdf(z2)
+    else:
+        pass
