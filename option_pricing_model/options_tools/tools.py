@@ -163,6 +163,7 @@ def CriticalPart2(id_, I, t1, t2, v):
     else:
         raise NotImplemented
 
+
 def CriticalPart3(id_, I, t1, t2, v):
     if id_ == 1:
         z1 = (np.log(I) + v ** 2 / 2 * (t2 - t1)) / (v * np.sqrt(t2 - t1))
@@ -174,3 +175,13 @@ def CriticalPart3(id_, I, t1, t2, v):
         return norm.cdf(z1) - I * norm.cdf(z2)
     else:
         pass
+
+
+def EuropeanExchangeOption(underlying_price1, underlying_price2, quantity1, quantity2, maturity,
+                           rate, carry_cost1, carry_cost2, vol1, vol2, correlation):
+    v = np.sqrt(vol1 ** 2 + vol2 ** 2 - 2 * correlation * vol1 * vol2)
+    d1 = (np.log(quantity1 * underlying_price1 / (quantity2 * underlying_price2)) + (
+            carry_cost1 - carry_cost2 + v ** 2 / 2) * maturity) / (v * np.sqrt(maturity))
+    d2 = d1 - v * np.sqrt(maturity)
+    return quantity1 * underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * norm.cdf(
+        d1) - quantity2 * underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * norm.cdf(d2)

@@ -1,4 +1,4 @@
-from option_pricing_model.options_fools.tools import *
+from option_pricing_model.options_tools.tools import *
 from option_pricing_model.vanilla_options_model.bsm_base import  BSM_ORIGINAL
 
 import numpy as np
