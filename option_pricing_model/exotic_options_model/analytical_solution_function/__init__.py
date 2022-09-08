@@ -354,6 +354,29 @@ class ExoticOPtions(object):
         else:
             raise NotImplemented
 
+    @staticmethod
+    def Spread_Options(futures1, futures2, strike_price, maturity, rate, vol1, vol2, correlation, options_type):
+        """
+        spread options pricing model
+        :param futures1: futures contract 1 price
+        :param futures2: futures contract 2 price
+        :param strike_price: options strike price
+        :param maturity: maturity time
+        :param rate: risk-free rate
+        :param vol1: volatility on futures 1
+        :param vol2: volatility on futures 2
+        :param correlation: correlation between 2 futures
+        :param options_type: call/put
+        :return: options price
+        """
+        v = np.sqrt(
+            vol1 ** 2 + (
+                        vol2 * futures2 / (futures2 + strike_price)) ** 2 - 2 * correlation * vol1 * vol2 * futures2 / (
+                    futures2 + strike_price))
+        F = futures1 / (futures2 + strike_price)
+        return BSM(F,1,maturity,rate,0,v,options_type)*(futures2+strike_price)
+
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -388,10 +411,12 @@ if __name__ == '__main__':
     print('exchange options on exchange options 4',
           ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 4))
     print('max/min exchange options cmin',
-          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100,105,98,0.5,0.05,-0.01,-0.04,0.11,0.16,0.63,'cmin'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'cmin'))
     print('max/min exchange options cmax',
-          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100,105,98,0.5,0.05,-0.01,-0.04,0.11,0.16,0.63,'cmax'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'cmax'))
     print('max/min exchange options pmin',
-          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100,105,98,0.5,0.05,-0.01,-0.04,0.11,0.16,0.63,'pmin'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'pmin'))
     print('max/min exchange options pmax',
-          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100,105,98,0.5,0.05,-0.01,-0.04,0.11,0.16,0.63,'pmax'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'pmax'))
+    print('spread call options',ExoticOPtions.Spread_Options(28,20,7,0.25,0.05,0.29,0.36,0.42,'call'))
+    print('spread put options', ExoticOPtions.Spread_Options(28, 20, 7, 0.25, 0.05, 0.29, 0.36, 0.42, 'put'))
