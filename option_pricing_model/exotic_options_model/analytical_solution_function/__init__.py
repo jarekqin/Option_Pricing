@@ -416,6 +416,60 @@ class ExoticOPtions(object):
         else:
             raise TypeError
 
+    @staticmethod
+    def Fixed_Strike_Lookback_Options(underlying_price, strike_price, observed_min, observed_max, maturity, rate,
+                                      carry_cost, vol, options_type):
+        """
+        float strike lookback options
+        :param underlying_price: asset underlying price
+        :param strike_price: strike price on options
+        :param observed_min: observed periods min price
+        :param observed_max: observed periods max price
+        :param maturity: maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: call/put
+        :return: opitons price
+        """
+        if options_type.lower() == 'call':
+            m = observed_max
+        else:
+            m = observed_min
+        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+        d2 = d1 - vol * np.sqrt(maturity)
+        e1 = (np.log(underlying_price / m) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+        e2 = e1 - vol * np.sqrt(maturity)
+
+        if options_type.lower() == "call" and strike_price > m:
+            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) - strike_price * np.exp(
+                -rate * maturity) * norm.cdf(d2) \
+                   + underlying_price * np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                           -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                       d1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(d1))
+        elif options_type.lower() == "call" and strike_price <= m:
+            return np.exp(-rate * maturity) * (m - strike_price) + underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(e1) - np.exp(-rate * maturity) * m * norm.cdf(e2) \
+                   + underlying_price * np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                           -(underlying_price / m) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                       e1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(e1))
+        elif options_type.lower() == "put" and strike_price < m:
+            return -underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1) + strike_price * np.exp(
+                -rate * maturity) * norm.cdf(-d1 + vol * np.sqrt(maturity)) + underlying_price * np.exp(
+                -rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                           (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                       -d1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-d1))
+        elif options_type.lower() == "put" and strike_price >= m:
+            return np.exp(-rate * maturity) * (strike_price - m) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(-e1) + np.exp(-rate * maturity) * m * norm.cdf(
+                -e1 + vol * np.sqrt(maturity)) + np.exp(-rate * maturity) * vol ** 2 / (
+                           2 * carry_cost) * underlying_price * (
+                           (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                       -e1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-e1))
+        else:
+            return None
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -463,3 +517,7 @@ if __name__ == '__main__':
           ExoticOPtions.Float_Strike_Lookback_Options(120, 100, 120, 0.5, 0.1, 0.04, 0.3, 'call'))
     print('float lookback put on max options',
           ExoticOPtions.Float_Strike_Lookback_Options(120, 100, 120, 0.5, 0.1, 0.04, 0.3, 'put'))
+    print('fixed lookback call on min options',
+          ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'call'))
+    print('fixed lookback put on max options',
+          ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'put'))
