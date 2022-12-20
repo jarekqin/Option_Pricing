@@ -18,7 +18,7 @@ class ExoticOPtions(object):
         :param rate: risk-free rate
         :param carry_cost: carry cost
         :param vol: volatility
-        :param lambda1: lambda factor
+        :param lambda1: a_b_actual_extremum factor
         :param options_type: call/put
         :return: options price
         """
@@ -114,11 +114,11 @@ class ExoticOPtions(object):
             correlation2 = np.sqrt(chooser_time / maturity_put)
 
             return underlying_price * np.exp((carry_cost - rate) * maturity_call) * CBND(d1, y1, correlation1) - \
-                   strike_price_call * np.exp(-rate * maturity_call) * CBND(d2, y1 - vol * np.sqrt(maturity_call),
-                                                                            correlation1) \
-                   - underlying_price * np.exp((carry_cost - rate) * maturity_put) * CBND(-d1, -y2, correlation2) + \
-                   strike_price_put * np.exp(-rate * maturity_put) * CBND(-d2, -y2 + vol * np.sqrt(maturity_put),
-                                                                          correlation2)
+                strike_price_call * np.exp(-rate * maturity_call) * CBND(d2, y1 - vol * np.sqrt(maturity_call),
+                                                                         correlation1) \
+                - underlying_price * np.exp((carry_cost - rate) * maturity_put) * CBND(-d1, -y2, correlation2) + \
+                strike_price_put * np.exp(-rate * maturity_put) * CBND(-d2, -y2 + vol * np.sqrt(maturity_put),
+                                                                       correlation2)
 
         else:
             raise NotImplemented
@@ -157,21 +157,21 @@ class ExoticOPtions(object):
         if options_type.lower() == 'cc':
             return underlying_price * np.exp((carry_cost - rate) * maturity2) * CBND(z1, y1,
                                                                                      correlation) - strike_price1 * \
-                   np.exp(-rate * maturity2) * CBND(z2, y2, correlation) - strike_price2 * np.exp(-rate * maturity1) * \
-                   norm.cdf(y2)
+                np.exp(-rate * maturity2) * CBND(z2, y2, correlation) - strike_price2 * np.exp(-rate * maturity1) * \
+                norm.cdf(y2)
         elif options_type.lower() == 'pc':
             return strike_price1 * np.exp(-rate * maturity2) * CBND(z2, -y2, -correlation) - underlying_price * \
-                   np.exp((carry_cost - rate) * maturity2) * CBND(z1, -y1, -correlation) + strike_price2 * \
-                   np.exp(-rate * maturity1) * norm.cdf(-y2)
+                np.exp((carry_cost - rate) * maturity2) * CBND(z1, -y1, -correlation) + strike_price2 * \
+                np.exp(-rate * maturity1) * norm.cdf(-y2)
         elif options_type.lower() == 'cp':
             return strike_price1 * np.exp(-rate * maturity2) * CBND(-z2, -y2, correlation) - underlying_price * \
-                   np.exp((carry_cost - rate) * maturity2) * CBND(-z1, -y1, correlation) - strike_price2 * \
-                   np.exp(-rate * maturity1) * norm.cdf(-y2)
+                np.exp((carry_cost - rate) * maturity2) * CBND(-z1, -y1, correlation) - strike_price2 * \
+                np.exp(-rate * maturity1) * norm.cdf(-y2)
         elif options_type.lower() == 'pp':
             return underlying_price * np.exp((carry_cost - rate) * maturity2) * CBND(-z1, y1,
                                                                                      -correlation) - strike_price1 * \
-                   np.exp(-rate * maturity2) * CBND(-z2, y2, -correlation) + np.exp(-rate * maturity1) * strike_price2 * \
-                   norm.cdf(y2)
+                np.exp(-rate * maturity2) * CBND(-z2, y2, -correlation) + np.exp(-rate * maturity1) * strike_price2 * \
+                norm.cdf(y2)
         else:
             raise TypeError
 
@@ -186,16 +186,16 @@ class ExoticOPtions(object):
                 vol * np.sqrt(maturity))
         if options_type.lower() == 'call':
             return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
-                   underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(z1, -z2, -correlation) - \
-                   extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
-                z1 - np.sqrt(vol ** 2 * extendible_maturity),
-                -z2 + np.sqrt(vol ** 2 * maturity), -correlation)
+                underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(z1, -z2, -correlation) - \
+                extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
+                    z1 - np.sqrt(vol ** 2 * extendible_maturity),
+                    -z2 + np.sqrt(vol ** 2 * maturity), -correlation)
         elif options_type.lower() == 'put':
             return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type) + \
-                   extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
-                -z1 + np.sqrt(vol ** 2 * extendible_maturity),
-                z2 - np.sqrt(vol ** 2 * maturity), -correlation) - \
-                   underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(-z1, z2, -correlation)
+                extendible_strike_price * np.exp(-rate * extendible_maturity) * CBND(
+                    -z1 + np.sqrt(vol ** 2 * extendible_maturity),
+                    z2 - np.sqrt(vol ** 2 * maturity), -correlation) - \
+                underlying_price * np.exp((carry_cost - rate) * extendible_maturity) * CBND(-z1, z2, -correlation)
         else:
             raise NotImplemented
 
@@ -211,13 +211,13 @@ class ExoticOPtions(object):
                                                                                       y1 + correlation * vol2 * np.sqrt(
                                                                                           maturity),
                                                                                       correlation) - strike_price2 * \
-                   np.exp(-rate * maturity) * CBND(y2, y1, correlation)
+                np.exp(-rate * maturity) * CBND(y2, y1, correlation)
 
         elif options_type.lower() == 'put':
             return strike_price2 * np.exp(-rate * maturity) * CBND(-y2, -y1, correlation) - \
-                   underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(-y2 - vol2 * np.sqrt(maturity),
-                                                                                      -y1 - correlation * vol2 * np.sqrt(
-                                                                                          maturity), correlation)
+                underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(-y2 - vol2 * np.sqrt(maturity),
+                                                                                   -y1 - correlation * vol2 * np.sqrt(
+                                                                                       maturity), correlation)
         else:
             raise NotImplemented
 
@@ -271,23 +271,23 @@ class ExoticOPtions(object):
         if int(options_type) == 1:
             return -underlying_price2 * np.exp((carry_cost2 - rate) * maturity2) * CBND(d2, y2, np.sqrt(
                 maturity1 / maturity2)) + underlying_price1 * np.exp((carry_cost1 - rate) * maturity2) * \
-                   CBND(d1, y1, np.sqrt(maturity1 / maturity2)) - quantity_on_asset2 * underlying_price2 * np.exp(
-                (carry_cost2 - rate) * maturity1) * norm.cdf(d2)
+                CBND(d1, y1, np.sqrt(maturity1 / maturity2)) - quantity_on_asset2 * underlying_price2 * np.exp(
+                    (carry_cost2 - rate) * maturity1) * norm.cdf(d2)
         elif int(options_type) == 2:
             return underlying_price2 * np.exp((carry_cost2 - rate) * maturity2) * CBND(d3, y2, -np.sqrt(
                 maturity1 / maturity2)) - underlying_price1 * np.exp((carry_cost1 - rate) * maturity2) * \
-                   CBND(d4, y1, -np.sqrt(maturity1 / maturity2)) + quantity_on_asset2 * underlying_price2 * np.exp(
-                (carry_cost2 - rate) * maturity1) * norm.cdf(d3)
+                CBND(d4, y1, -np.sqrt(maturity1 / maturity2)) + quantity_on_asset2 * underlying_price2 * np.exp(
+                    (carry_cost2 - rate) * maturity1) * norm.cdf(d3)
         elif int(options_type) == 3:
             return underlying_price2 * np.exp((carry_cost2 - rate) * maturity2) * CBND(d3, y3, np.sqrt(
                 maturity1 / maturity2)) - underlying_price1 * np.exp((carry_cost1 - rate) * maturity2) * \
-                   CBND(d4, y4, np.sqrt(maturity1 / maturity2)) - quantity_on_asset2 * underlying_price2 * np.exp(
-                (carry_cost2 - rate) * maturity1) * norm.cdf(d3)
+                CBND(d4, y4, np.sqrt(maturity1 / maturity2)) - quantity_on_asset2 * underlying_price2 * np.exp(
+                    (carry_cost2 - rate) * maturity1) * norm.cdf(d3)
         elif int(options_type) == 4:
             return -underlying_price2 * np.exp((carry_cost2 - rate) * maturity2) * CBND(d2, y3, -np.sqrt(
                 maturity1 / maturity2)) + underlying_price1 * np.exp((carry_cost1 - rate) * maturity2) * \
-                   CBND(d1, y4, -np.sqrt(maturity1 / maturity2)) + quantity_on_asset2 * underlying_price2 * np.exp(
-                (carry_cost2 - rate) * maturity1) * norm.cdf(d2)
+                CBND(d1, y4, -np.sqrt(maturity1 / maturity2)) + quantity_on_asset2 * underlying_price2 * np.exp(
+                    (carry_cost2 - rate) * maturity1) * norm.cdf(d2)
         else:
             raise NotImplemented
 
@@ -325,32 +325,32 @@ class ExoticOPtions(object):
 
         if options_type.lower() == 'cmin':
             return underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * CBND(y1, -d, -correlation1) + \
-                   underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(y2, d - v * np.sqrt(maturity),
-                                                                                      -correlation2) - strike_price * \
-                   np.exp(-rate * maturity) * CBND(y1 - vol1 * np.sqrt(maturity), y2 - vol2 * np.sqrt(maturity),
-                                                   correlation)
+                underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * CBND(y2, d - v * np.sqrt(maturity),
+                                                                                   -correlation2) - strike_price * \
+                np.exp(-rate * maturity) * CBND(y1 - vol1 * np.sqrt(maturity), y2 - vol2 * np.sqrt(maturity),
+                                                correlation)
         elif options_type.lower() == 'cmax':
             return underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * CBND(y1, d,
                                                                                       correlation1) + underlying_price2 * np.exp(
                 (carry_cost2 - rate) * maturity) * CBND(y2, -d + v * np.sqrt(maturity),
                                                         correlation2) - strike_price * np.exp(-rate * maturity) * (
-                           1 - CBND(-y1 + vol1 * np.sqrt(maturity), -y2 + vol2 * np.sqrt(maturity), correlation))
+                    1 - CBND(-y1 + vol1 * np.sqrt(maturity), -y2 + vol2 * np.sqrt(maturity), correlation))
         elif options_type.lower() == 'pmin':
             return strike_price * np.exp(-rate * maturity) - underlying_price1 * np.exp(
                 (carry_cost1 - rate) * maturity) + EuropeanExchangeOption(underlying_price1, underlying_price2, 1, 1,
                                                                           maturity, rate, carry_cost1, carry_cost2,
                                                                           vol1, vol2, correlation) + \
-                   ExoticOPtions.Options_On_Max_Min_Risk_Assets(underlying_price1, underlying_price2, strike_price,
-                                                                maturity, rate, carry_cost1, carry_cost2, vol1, vol2,
-                                                                correlation, 'cmin')
+                ExoticOPtions.Options_On_Max_Min_Risk_Assets(underlying_price1, underlying_price2, strike_price,
+                                                             maturity, rate, carry_cost1, carry_cost2, vol1, vol2,
+                                                             correlation, 'cmin')
         elif options_type.lower() == 'pmax':
             return strike_price * np.exp(-rate * maturity) - underlying_price2 * np.exp(
                 (carry_cost2 - rate) * maturity) - EuropeanExchangeOption(underlying_price1, underlying_price2, 1, 1,
                                                                           maturity, rate, carry_cost1, carry_cost2,
                                                                           vol1, vol2, correlation) + \
-                   ExoticOPtions.Options_On_Max_Min_Risk_Assets(underlying_price1, underlying_price2, strike_price,
-                                                                maturity, rate, carry_cost1, carry_cost2, vol1, vol2,
-                                                                correlation, 'cmax')
+                ExoticOPtions.Options_On_Max_Min_Risk_Assets(underlying_price1, underlying_price2, strike_price,
+                                                             maturity, rate, carry_cost1, carry_cost2, vol1, vol2,
+                                                             correlation, 'cmax')
         else:
             raise NotImplemented
 
@@ -404,15 +404,15 @@ class ExoticOPtions(object):
         if options_type.lower() == 'call':
             return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(a1) - strike_price * np.exp(
                 -rate * maturity) * norm.cdf(a2) + \
-                   np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * underlying_price * (
-                           (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
-                       -a1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-a1))
+                np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * underlying_price * (
+                        (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                    -a1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-a1))
         elif options_type.lower() == 'put':
             return strike_price * np.exp(-rate * maturity) * norm.cdf(-a2) - underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * norm.cdf(-a1) + \
-                   np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * underlying_price * (
-                           -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
-                       a1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(a1))
+                np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * underlying_price * (
+                        -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                    a1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(a1))
         else:
             raise TypeError
 
@@ -445,30 +445,100 @@ class ExoticOPtions(object):
         if options_type.lower() == "call" and strike_price > m:
             return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) - strike_price * np.exp(
                 -rate * maturity) * norm.cdf(d2) \
-                   + underlying_price * np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
-                           -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
-                       d1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(d1))
+                + underlying_price * np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                        -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                    d1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(d1))
         elif options_type.lower() == "call" and strike_price <= m:
             return np.exp(-rate * maturity) * (m - strike_price) + underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * norm.cdf(e1) - np.exp(-rate * maturity) * m * norm.cdf(e2) \
-                   + underlying_price * np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
-                           -(underlying_price / m) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
-                       e1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(e1))
+                + underlying_price * np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                        -(underlying_price / m) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                    e1 - 2 * carry_cost / vol * np.sqrt(maturity)) + np.exp(carry_cost * maturity) * norm.cdf(e1))
         elif options_type.lower() == "put" and strike_price < m:
             return -underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(-d1) + strike_price * np.exp(
                 -rate * maturity) * norm.cdf(-d1 + vol * np.sqrt(maturity)) + underlying_price * np.exp(
                 -rate * maturity) * vol ** 2 / (2 * carry_cost) * (
-                           (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
-                       -d1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-d1))
+                    (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                -d1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-d1))
         elif options_type.lower() == "put" and strike_price >= m:
             return np.exp(-rate * maturity) * (strike_price - m) - underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * norm.cdf(-e1) + np.exp(-rate * maturity) * m * norm.cdf(
                 -e1 + vol * np.sqrt(maturity)) + np.exp(-rate * maturity) * vol ** 2 / (
-                           2 * carry_cost) * underlying_price * (
-                           (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
-                       -e1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-e1))
+                    2 * carry_cost) * underlying_price * (
+                    (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * norm.cdf(
+                -e1 + 2 * carry_cost / vol * np.sqrt(maturity)) - np.exp(carry_cost * maturity) * norm.cdf(-e1))
         else:
             return None
+
+    @staticmethod
+    def Partial_Float_LookBack_Options(underlying_price, observed_min, observed_max, a_b_actual_extremum,
+                                       lookback_length,
+                                       maturity, rate, carry_cost, vol, options_type):
+        """
+        partial float lookback options
+        :param underlying_price: asset underlying price
+        :param observed_min: observed minimum price
+        :param observed_max: observed maxmimum price
+        :param a_b_actual_extremum: above or below actual extremum
+        :param lookback_length: lookback time period length
+        :param maturity: time to maturity
+        :param rate: risk-free risk
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: options type
+        :return: options price
+        """
+        if options_type.lower() in ['c', 'call']:
+            m = observed_min
+        else:
+            m = observed_max
+        d1 = (np.log(underlying_price / m) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+        d2 = d1 - vol * np.sqrt(maturity)
+        e1 = (carry_cost + vol ** 2 / 2) * (maturity - lookback_length) / (vol * np.sqrt(maturity - lookback_length))
+        e2 = e1 - vol * np.sqrt(maturity - lookback_length)
+        f1 = (np.log(underlying_price / m) + (carry_cost + vol ** 2 / 2) * lookback_length) / (
+                vol * np.sqrt(lookback_length))
+        f2 = f1 - vol * np.sqrt(lookback_length)
+        g1 = np.log(a_b_actual_extremum) / (vol * np.sqrt(maturity))
+        g2 = np.log(a_b_actual_extremum) / (vol * np.sqrt(maturity - lookback_length))
+
+        if options_type.lower() in ['c', 'call']:
+            part1 = underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
+                d1 - g1) - a_b_actual_extremum * m * np.exp(-rate * maturity) * norm.cdf(d2 - g1)
+            part2 = np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * \
+                    a_b_actual_extremum * underlying_price * (
+                            (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * CBND(
+                        -f1 + 2 * carry_cost * np.sqrt(lookback_length) / vol,
+                        -d1 + 2 * carry_cost * np.sqrt(maturity) / vol - g1, np.sqrt(lookback_length / maturity)) -\
+                            np.exp(carry_cost * maturity) * a_b_actual_extremum ** (
+                                    2 * carry_cost / vol ** 2) * CBND(-d1 - g1, e1 + g2, -np.sqrt(
+                        1 - lookback_length / maturity))) + \
+                    underlying_price * np.exp((carry_cost - rate) * maturity) * CBND(-d1 + g1, e1 - g2, -np.sqrt(
+                1 - lookback_length / maturity))
+            part3 = np.exp(-rate * maturity) * a_b_actual_extremum * m * CBND(-f2, d2 - g1, -np.sqrt(
+                lookback_length / maturity)) - np.exp(-carry_cost * (maturity - lookback_length)) * np.exp(
+                (carry_cost - rate) * maturity) * \
+                    (1 + vol ** 2 / (2 * carry_cost)) * a_b_actual_extremum * underlying_price * norm.cdf(
+                e2 - g2) * norm.cdf(-f1)
+
+        else:
+            part1 = a_b_actual_extremum * m * np.exp(-rate * maturity) * norm.cdf(-d2 + g1) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(-d1 + g1)
+            part2 = -np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * a_b_actual_extremum * underlying_price * (
+                    (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * CBND(
+                f1 - 2 * carry_cost * np.sqrt(lookback_length) /
+                vol, d1 - 2 * carry_cost * np.sqrt(maturity) / vol + g1,
+                np.sqrt(lookback_length / maturity)) - np.exp(carry_cost * maturity) * a_b_actual_extremum ** (
+                            2 * carry_cost / vol ** 2) * \
+                    CBND(d1 + g1, -e1 - g2, -np.sqrt(1 - lookback_length / maturity))) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * CBND(d1 - g1, -e1 + g2, -np.sqrt(1 - lookback_length / maturity))
+            part3 = -np.exp(-rate * maturity) * a_b_actual_extremum * m * CBND(f2, -d2 + g1, -np.sqrt(
+                lookback_length / maturity)) + np.exp(-carry_cost * (maturity - lookback_length)) * np.exp(
+                (carry_cost - rate) * maturity) * \
+                    (1 + vol ** 2 / (2 * carry_cost)) * a_b_actual_extremum * underlying_price * norm.cdf(
+                -e2 + g2) * norm.cdf(f1)
+
+        return part1 + part2 + part3
 
 
 if __name__ == '__main__':
@@ -521,3 +591,7 @@ if __name__ == '__main__':
           ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'call'))
     print('fixed lookback put on max options',
           ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'put'))
+    print('partial float lookback put on call options',
+          ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'call'))
+    print('partial float lookback put on put options',
+          ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'put'))
