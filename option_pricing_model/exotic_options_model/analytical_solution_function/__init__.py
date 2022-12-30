@@ -1,6 +1,3 @@
-import numpy as np
-
-from scipy.stats import norm
 
 from option_pricing_model.options_tools.tools import *
 from option_pricing_model.vanilla_options_model.bsm_base import BSM
