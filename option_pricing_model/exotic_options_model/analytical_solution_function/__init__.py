@@ -509,7 +509,7 @@ class ExoticOPtions(object):
                     a_b_actual_extremum * underlying_price * (
                             (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * CBND(
                         -f1 + 2 * carry_cost * np.sqrt(lookback_length) / vol,
-                        -d1 + 2 * carry_cost * np.sqrt(maturity) / vol - g1, np.sqrt(lookback_length / maturity)) -\
+                        -d1 + 2 * carry_cost * np.sqrt(maturity) / vol - g1, np.sqrt(lookback_length / maturity)) - \
                             np.exp(carry_cost * maturity) * a_b_actual_extremum ** (
                                     2 * carry_cost / vol ** 2) * CBND(-d1 - g1, e1 + g2, -np.sqrt(
                         1 - lookback_length / maturity))) + \
@@ -539,6 +539,59 @@ class ExoticOPtions(object):
                 -e2 + g2) * norm.cdf(f1)
 
         return part1 + part2 + part3
+
+    @staticmethod
+    def Partial_Fixed_LookBack_Options(underlying_price, strike_price, lookback_length, maturity, rate, carry_cost, vol,
+                                       options_type):
+        """
+        partial fixed lookback options
+        :param underlying_price: asset underlying price
+        :param strike_price: strike price on options
+        :param lookback_length: lookback time period length
+        :param maturity: time to maturity
+        :param rate: risk-free risk
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: options type
+        :return: options price
+        """
+        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+        d2 = d1 - vol * np.sqrt(maturity)
+        e1 = ((carry_cost + vol ** 2 / 2) * (maturity - lookback_length)) / (vol * np.sqrt(maturity - lookback_length))
+        e2 = e1 - vol * np.sqrt(maturity - lookback_length)
+        f1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * lookback_length) / (
+                vol * np.sqrt(lookback_length))
+        f2 = f1 - vol * np.sqrt(lookback_length)
+
+        if options_type.lower() == 'call':
+            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) - np.exp(
+                -rate * maturity) * strike_price * norm.cdf(d2) + underlying_price * np.exp(
+                -rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                        -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
+                    d1 - 2 * carry_cost * np.sqrt(maturity) / vol,
+                    -f1 + 2 * carry_cost * np.sqrt(lookback_length) / vol,
+                    -np.sqrt(lookback_length / maturity)) + np.exp(carry_cost * maturity) * CBND(e1, d1, np.sqrt(
+                    1 - lookback_length / maturity))) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * CBND(-e1, d1, -np.sqrt(
+                1 - lookback_length / maturity)) - strike_price * np.exp(-rate * maturity) * CBND(f2, -d2, -np.sqrt(
+                lookback_length / maturity)) + np.exp(-carry_cost * (maturity - lookback_length)) * (
+                        1 - vol ** 2 / (2 * carry_cost)) * underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(f1) * norm.cdf(-e2)
+        else:
+            return strike_price * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(-d1) + underlying_price * np.exp(
+                -rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                        (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
+                    -d1 + 2 * carry_cost * np.sqrt(maturity) / vol,
+                    f1 - 2 * carry_cost * np.sqrt(lookback_length) / vol,
+                    -np.sqrt(lookback_length / maturity)) - np.exp(carry_cost * maturity) * CBND(-e1, -d1, np.sqrt(
+                    1 - lookback_length / maturity))) + underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * CBND(e1, -d1, -np.sqrt(
+                1 - lookback_length / maturity)) + strike_price * np.exp(-rate * maturity) * CBND(-f2, d2, -np.sqrt(
+                lookback_length / maturity)) - np.exp(-carry_cost * (maturity - lookback_length)) * (
+                        1 - vol ** 2 / (2 * carry_cost)) * underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(-f1) * norm.cdf(e2)
 
 
 if __name__ == '__main__':
@@ -595,3 +648,8 @@ if __name__ == '__main__':
           ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'call'))
     print('partial float lookback put on put options',
           ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'put'))
+    print('partial fixed lookback put on call options',
+          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06,0.06, 0.1, 'call'))
+    print('partial fixed lookback put on put options',
+          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06,0.06, 0.1, 'put'))
+
