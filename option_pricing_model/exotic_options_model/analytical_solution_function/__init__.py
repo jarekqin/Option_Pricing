@@ -1,4 +1,3 @@
-
 from option_pricing_model.options_tools.tools import *
 from option_pricing_model.vanilla_options_model.bsm_base import BSM
 
@@ -506,7 +505,7 @@ class ExoticOPtions(object):
                     a_b_actual_extremum * underlying_price * (
                             (underlying_price / m) ** (-2 * carry_cost / vol ** 2) * CBND(
                         -f1 + 2 * carry_cost * np.sqrt(lookback_length) / vol,
-                        -d1 + 2 * carry_cost * np.sqrt(maturity) / vol - g1, np.sqrt(lookback_length / maturity)) - \
+                        -d1 + 2 * carry_cost * np.sqrt(maturity) / vol - g1, np.sqrt(lookback_length / maturity)) -
                             np.exp(carry_cost * maturity) * a_b_actual_extremum ** (
                                     2 * carry_cost / vol ** 2) * CBND(-d1 - g1, e1 + g2, -np.sqrt(
                         1 - lookback_length / maturity))) + \
@@ -526,7 +525,7 @@ class ExoticOPtions(object):
                 f1 - 2 * carry_cost * np.sqrt(lookback_length) /
                 vol, d1 - 2 * carry_cost * np.sqrt(maturity) / vol + g1,
                 np.sqrt(lookback_length / maturity)) - np.exp(carry_cost * maturity) * a_b_actual_extremum ** (
-                            2 * carry_cost / vol ** 2) * \
+                            2 * carry_cost / vol ** 2) *
                     CBND(d1 + g1, -e1 - g2, -np.sqrt(1 - lookback_length / maturity))) - underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * CBND(d1 - g1, -e1 + g2, -np.sqrt(1 - lookback_length / maturity))
             part3 = -np.exp(-rate * maturity) * a_b_actual_extremum * m * CBND(f2, -d2 + g1, -np.sqrt(
@@ -565,30 +564,93 @@ class ExoticOPtions(object):
             return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) - np.exp(
                 -rate * maturity) * strike_price * norm.cdf(d2) + underlying_price * np.exp(
                 -rate * maturity) * vol ** 2 / (2 * carry_cost) * (
-                        -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
-                    d1 - 2 * carry_cost * np.sqrt(maturity) / vol,
-                    -f1 + 2 * carry_cost * np.sqrt(lookback_length) / vol,
-                    -np.sqrt(lookback_length / maturity)) + np.exp(carry_cost * maturity) * CBND(e1, d1, np.sqrt(
-                    1 - lookback_length / maturity))) - underlying_price * np.exp(
+                    -(underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
+                d1 - 2 * carry_cost * np.sqrt(maturity) / vol,
+                -f1 + 2 * carry_cost * np.sqrt(lookback_length) / vol,
+                -np.sqrt(lookback_length / maturity)) + np.exp(carry_cost * maturity) * CBND(e1, d1, np.sqrt(
+                1 - lookback_length / maturity))) - underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * CBND(-e1, d1, -np.sqrt(
                 1 - lookback_length / maturity)) - strike_price * np.exp(-rate * maturity) * CBND(f2, -d2, -np.sqrt(
                 lookback_length / maturity)) + np.exp(-carry_cost * (maturity - lookback_length)) * (
-                        1 - vol ** 2 / (2 * carry_cost)) * underlying_price * np.exp(
+                    1 - vol ** 2 / (2 * carry_cost)) * underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * norm.cdf(f1) * norm.cdf(-e2)
         else:
             return strike_price * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * norm.cdf(-d1) + underlying_price * np.exp(
                 -rate * maturity) * vol ** 2 / (2 * carry_cost) * (
-                        (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
-                    -d1 + 2 * carry_cost * np.sqrt(maturity) / vol,
-                    f1 - 2 * carry_cost * np.sqrt(lookback_length) / vol,
-                    -np.sqrt(lookback_length / maturity)) - np.exp(carry_cost * maturity) * CBND(-e1, -d1, np.sqrt(
-                    1 - lookback_length / maturity))) + underlying_price * np.exp(
+                    (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
+                -d1 + 2 * carry_cost * np.sqrt(maturity) / vol,
+                f1 - 2 * carry_cost * np.sqrt(lookback_length) / vol,
+                -np.sqrt(lookback_length / maturity)) - np.exp(carry_cost * maturity) * CBND(-e1, -d1, np.sqrt(
+                1 - lookback_length / maturity))) + underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * CBND(e1, -d1, -np.sqrt(
                 1 - lookback_length / maturity)) + strike_price * np.exp(-rate * maturity) * CBND(-f2, d2, -np.sqrt(
                 lookback_length / maturity)) - np.exp(-carry_cost * (maturity - lookback_length)) * (
-                        1 - vol ** 2 / (2 * carry_cost)) * underlying_price * np.exp(
+                    1 - vol ** 2 / (2 * carry_cost)) * underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * norm.cdf(-f1) * norm.cdf(e2)
+
+    @staticmethod
+    def Extreme_Spread_Options(underlying_price, observed_min, observed_max, t1, maturity, rate, carry_cost, vol,
+                               options_type):
+        """
+        partial fixed lookback options
+        :param underlying_price: asset underlying price
+        :param observed_min: minimum observed price
+        :param observed_max: maximum observed priceength
+        :param t1: first time priod
+        :param maturity: time to maturity
+        :param rate: risk-free risk
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: user must use 1~4 number as input
+        :return: options price
+        """
+        if int(options_type) in [1, 3]:
+            eta = 1
+        else:
+            eta = -1
+
+        if int(options_type) in [1, 2]:
+            kapper = 1
+        else:
+            kapper = -1
+
+        if eta * kapper == 1:
+            Mo = observed_max
+        else:
+            Mo = observed_min
+
+        mu1 = carry_cost - vol ** 2 / 2
+        mu = mu1 + vol ** 2
+        m = np.log(Mo / underlying_price)
+
+        if kapper == 1:
+            return eta * (underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                    1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
+                eta * (-m + mu * maturity) / (vol * np.sqrt(maturity))) - np.exp(
+                -rate * (maturity - t1)) * underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                                  1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
+                eta * (-m + mu * t1) / (vol * np.sqrt(t1))) + np.exp(-rate * maturity) * Mo * norm.cdf(
+                eta * (m - mu1 * maturity) / (vol * np.sqrt(maturity))) - np.exp(
+                -rate * maturity) * Mo * vol ** 2 / (
+                                  2 * carry_cost) * np.exp(2 * mu1 * m / vol ** 2) * norm.cdf(
+                eta * (-m - mu1 * maturity) / (vol * np.sqrt(maturity))) - np.exp(
+                -rate * maturity) * Mo * norm.cdf(eta * (m - mu1 * t1) / (vol * np.sqrt(t1))) + np.exp(
+                -rate * maturity) * Mo * vol ** 2 / (
+                                  2 * carry_cost) * np.exp(2 * mu1 * m / vol ** 2) * norm.cdf(
+                eta * (-m - mu1 * t1) / (vol * np.sqrt(t1))))
+        else:
+            return -eta * (underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                    1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
+                eta * (m - mu * maturity) / (vol * np.sqrt(maturity))) + np.exp(-rate * maturity) * Mo * norm.cdf(
+                eta * (-m + mu1 * maturity) / (vol * np.sqrt(maturity))) - np.exp(-rate * maturity) * Mo * vol ** 2 / (
+                                   2 * carry_cost) * np.exp(2 * mu1 * m / vol ** 2) * norm.cdf(
+                eta * (m + mu1 * maturity) / (vol * np.sqrt(maturity))) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * (1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
+                eta * (-mu * (maturity - t1)) / (vol * np.sqrt(maturity - t1))) - np.exp(
+                -rate * (maturity - t1)) * underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                                   1 - vol ** 2 / (2 * carry_cost)) * norm.cdf(
+                eta * (mu1 * (maturity - t1)) / (vol * np.sqrt(maturity - t1))))
 
 
 if __name__ == '__main__':
@@ -646,7 +708,14 @@ if __name__ == '__main__':
     print('partial float lookback put on put options',
           ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'put'))
     print('partial fixed lookback put on call options',
-          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06,0.06, 0.1, 'call'))
+          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06, 0.06, 0.1, 'call'))
     print('partial fixed lookback put on put options',
-          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06,0.06, 0.1, 'put'))
-
+          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06, 0.06, 0.1, 'put'))
+    print('extreme spread call',
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 1))
+    print('extreme spread put',
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 2))
+    print('reversed extreme spread call',
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 3))
+    print('reversed extreme spread put',
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 4))
