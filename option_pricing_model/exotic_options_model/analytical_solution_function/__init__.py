@@ -1,5 +1,5 @@
-from option_pricing_model.options_tools.tools import *
 from option_pricing_model.vanilla_options_model.bsm_base import BSM
+from option_pricing_model.options_tools.tools import *
 
 
 class ExoticOPtions(object):
@@ -228,9 +228,9 @@ class ExoticOPtions(object):
         :param maturity1: maturity on exchange options
         :param maturity2: maturity on exchange options of exchange options
         :param rate: risk-free risk
-        :param carry_cosmaturity1: carry cost
+        :param carry_cost1: carry cost
         :param carry_cost2: carry cost
-        :param vol1: volatitlity 1
+        :param vol1: volatitlitty 1
         :param vol2: volatitlity 2
         :param correlation: correlation between 2 assets
         :param options_type: int type 1-4
@@ -653,13 +653,13 @@ class ExoticOPtions(object):
                 eta * (mu1 * (maturity - t1)) / (vol * np.sqrt(maturity - t1))))
 
     @staticmethod
-    def Standard_Barrier_Options(underlying_price, strike_price, barrier, cash_rebate, maturity, rate, carry_cost, vol,
+    def Standard_Barrier_Options(underlying_price, strike_price, barrier, cash_rate, maturity, rate, carry_cost, vol,
                                  options_type):
         """
         standard barrier option
         :param underlying_price: asset underlying price
         :param barrier: barrier price for out or in
-        :param cash_rebate: price after reatching barrier price
+        :param cash_rate: price after reatching barrier price
         :param maturity: time to maturity
         :param rate: risk-free risk
         :param carry_cost: carry cost
@@ -667,71 +667,169 @@ class ExoticOPtions(object):
         :param options_type: user must use 1~4 number as input
         :return: options price
         """
-        pass
+        mu = (carry_cost - vol ** 2 / 2) / vol ** 2
+        lambda_ = np.sqrt(mu ** 2 + 2 * rate / vol ** 2)
+        X1 = np.log(underlying_price / strike_price) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(maturity)
+        X2 = np.log(underlying_price / barrier) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(maturity)
+        y1 = np.log(barrier ** 2 / (underlying_price * strike_price)) / (vol * np.sqrt(maturity)) + (
+                1 + mu) * vol * np.sqrt(maturity)
+        y2 = np.log(barrier / underlying_price) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(maturity)
+        Z = np.log(barrier / underlying_price) / (vol * np.sqrt(maturity)) + lambda_ * vol * np.sqrt(maturity)
+        if options_type.lower() in ['cdi', 'cdo']:
+            eta = 1
+            phi = 1
+        elif options_type.lower() in ['cui', 'cuo']:
+            eta = -1
+            phi = 1
+        elif options_type.lower() in ['pdi', 'pdo']:
+            eta = 1
+            phi = -1
+        elif options_type.lower() in ['pui', 'puo']:
+            eta = -1
+            phi = -1
+        else:
+            raise TypeError
+
+        f1 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
+            phi * X1) - phi * strike_price * np.exp(-rate * maturity) * norm.cdf(
+            phi * X1 - phi * vol * np.sqrt(maturity))
+        f2 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
+            phi * X2) - phi * strike_price * np.exp(-rate * maturity) * norm.cdf(
+            phi * X2 - phi * vol * np.sqrt(maturity))
+        f3 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * (barrier / underlying_price) ** (
+                2 * (mu + 1)) * norm.cdf(eta * y1) - phi * strike_price * np.exp(-rate * maturity) * (
+                     barrier / underlying_price) ** (
+                     2 * mu) * norm.cdf(eta * y1 - eta * vol * np.sqrt(maturity))
+        f4 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * (barrier / underlying_price) ** (
+                2 * (mu + 1)) * norm.cdf(eta * y2) - phi * strike_price * np.exp(-rate * maturity) * (
+                     barrier / underlying_price) ** (
+                     2 * mu) * norm.cdf(eta * y2 - eta * vol * np.sqrt(maturity))
+        f5 = cash_rate * np.exp(-rate * maturity) * (
+                norm.cdf(eta * X2 - eta * vol * np.sqrt(maturity)) - (barrier / underlying_price) ** (
+                2 * mu) * norm.cdf(eta * y2 - eta * vol * np.sqrt(maturity)))
+        f6 = cash_rate * ((barrier / underlying_price) ** (mu + lambda_) * norm.cdf(eta * Z) + (
+                barrier / underlying_price) ** (mu - lambda_) * norm.cdf(eta * Z - 2 * eta *
+                                                                           lambda_ * vol * np.sqrt(maturity)))
+
+        if strike_price > barrier:
+            if options_type.lower() == 'cdi':
+                return f3 + f5
+            elif options_type.lower() == 'cui':
+                return f1 + f5
+            elif options_type.lower() == 'pdi':
+                return f2 - f3 + f4 + f5
+            elif options_type.lower() == 'pui':
+                return f1 - f2 + f4 + f5
+            elif options_type.lower() == 'cdo':
+                return f1 - f3 + f6
+            elif options_type.lower() == 'cuo':
+                return f6
+            elif options_type.lower() == 'pdo':
+                return f1 - f2 + f3 - f4 + f6
+            elif options_type.lower() == 'puo':
+                return f2 - f4 + f6
+            else:
+                raise TypeError
+        elif barrier > strike_price:
+            if options_type.lower() == 'cdi':
+                return f1 - f2 + f4 + f5
+            elif options_type.lower() == 'cui':
+                return f2 - f3 + f4 + f5
+            elif options_type.lower() == 'pdi':
+                return f1 + f5
+            elif options_type.lower() == 'pui':
+                return f3 + f5
+            elif options_type.lower() == 'cdo':
+                return f2 + f6 - f4
+            elif options_type.lower() == 'cuo':
+                return f1 - f2 + f3 - f4 + f6
+            elif options_type.lower() == 'pdo':
+                return f6
+            elif options_type.lower() == 'puo':
+                return f1 - f3 + f6
+            else:
+                raise TypeError
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
     print('execution stock put options',
-      ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15, 'put'))
+          ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15, 'put'))
     print('forward call options', ExoticOPtions.Forward_Options(60, 1.1, 0.25, 1, 0.08, 0.04, 0.3))
     print('forward put options', ExoticOPtions.Forward_Options(60, 1.1, 0.25, 1, 0.08, 0.04, 0.3, 'put'))
     print('time switch call options', ExoticOPtions.Time_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26))
     print('time switch put options',
-      ExoticOPtions.Time_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26, 'put'))
+          ExoticOPtions.Time_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26, 'put'))
     print('simple chooser options', ExoticOPtions.Chooser_Options(50, 55, 0, 0.25, 0.5, 0, 0.08, 0.08, 0.25))
     print('complex chooser options',
-      ExoticOPtions.Chooser_Options(50, 55, 48, 0.25, 0.5, 0.5833, 0.1, 0.05, 0.35, 'complex'))
+          ExoticOPtions.Chooser_Options(50, 55, 48, 0.25, 0.5, 0.5833, 0.1, 0.05, 0.35, 'complex'))
     print('cp options on options',
-      ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'cc'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'cc'))
     print('cp options on options',
-      ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'cp'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'cp'))
     print('pp options on options',
-      ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'pp'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'pp'))
     print('pc options on options',
-      ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'pc'))
+          ExoticOPtions.Options_On_Options(500, 520, 50, 0.25, 0.5, 0.08, 0.05, 0.35, 'pc'))
     print('extendible call options',
-      ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'call'))
+          ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'call'))
     print('extendible put options',
-      ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'put'))
+          ExoticOPtions.Extendible_Options(80, 90, 82, 0.5, 0.75, 0.1, 0.1, 0.3, 'put'))
     print('exchange options on exchange options 1',
-      ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 1))
+          ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 1))
     print('exchange options on exchange options 2',
-      ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 2))
+          ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 2))
     print('exchange options on exchange options 3',
-      ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 3))
+          ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 3))
     print('exchange options on exchange options 4',
-      ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 4))
+          ExoticOPtions.Exchange_On_Exchange_Options(105, 100, 0.1, 0.75, 1, 0.1, 0.1, 0.1, 0.2, 0.25, 0.5, 4))
     print('max/min exchange options cmin',
-      ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'cmin'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'cmin'))
     print('max/min exchange options cmax',
-      ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'cmax'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'cmax'))
     print('max/min exchange options pmin',
-      ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'pmin'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'pmin'))
     print('max/min exchange options pmax',
-      ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'pmax'))
+          ExoticOPtions.Options_On_Max_Min_Risk_Assets(100, 105, 98, 0.5, 0.05, -0.01, -0.04, 0.11, 0.16, 0.63, 'pmax'))
     print('spread call options', ExoticOPtions.Spread_Options(28, 20, 7, 0.25, 0.05, 0.29, 0.36, 0.42, 'call'))
     print('spread put options', ExoticOPtions.Spread_Options(28, 20, 7, 0.25, 0.05, 0.29, 0.36, 0.42, 'put'))
     print('float lookback call on min options',
-      ExoticOPtions.Float_Strike_Lookback_Options(120, 100, 120, 0.5, 0.1, 0.04, 0.3, 'call'))
+          ExoticOPtions.Float_Strike_Lookback_Options(120, 100, 120, 0.5, 0.1, 0.04, 0.3, 'call'))
     print('float lookback put on max options',
-      ExoticOPtions.Float_Strike_Lookback_Options(120, 100, 120, 0.5, 0.1, 0.04, 0.3, 'put'))
+          ExoticOPtions.Float_Strike_Lookback_Options(120, 100, 120, 0.5, 0.1, 0.04, 0.3, 'put'))
     print('fixed lookback call on min options',
-      ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'call'))
+          ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'call'))
     print('fixed lookback put on max options',
-      ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'put'))
+          ExoticOPtions.Fixed_Strike_Lookback_Options(100, 105, 100, 100, 0.5, 0.1, 0.1, 0.2, 'put'))
     print('partial float lookback put on call options',
-      ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'call'))
+          ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'call'))
     print('partial float lookback put on put options',
-      ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'put'))
+          ExoticOPtions.Partial_Float_LookBack_Options(90, 90, 90, 1, 0.25, 1, 0.06, 0.06, 0.2, 'put'))
     print('partial fixed lookback put on call options',
-      ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06, 0.06, 0.1, 'call'))
+          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06, 0.06, 0.1, 'call'))
     print('partial fixed lookback put on put options',
-      ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06, 0.06, 0.1, 'put'))
+          ExoticOPtions.Partial_Fixed_LookBack_Options(100, 100, 0.5, 1, 0.06, 0.06, 0.1, 'put'))
     print('extreme spread call',
-      ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 1))
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 1))
     print('extreme spread put',
-      ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 2))
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 2))
     print('reversed extreme spread call',
-      ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 3))
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 3))
     print('reversed extreme spread put',
-      ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 4))
+          ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 4))
+    print('standard barrier options with down-in-call',
+          ExoticOPtions.Standard_Barrier_Options(100,100,115,3,0.5,0.08,0.04,0.2,'cdi'))
+    print('standard barrier options with up-in-call',
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'cui'))
+    print('standard barrier options with down-in-put',
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'pdi'))
+    print('standard barrier options with up-in-put',
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'pui'))
+    print('standard barrier options with down-out-call',
+          ExoticOPtions.Standard_Barrier_Options(100,100,115,3,0.5,0.08,0.04,0.2,'cdo'))
+    print('standard barrier options with up-out-call',
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'cuo'))
+    print('standard barrier options with down-out-put',
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'pdo'))
+    print('standard barrier options with up-out-put',
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'puo'))

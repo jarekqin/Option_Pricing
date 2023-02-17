@@ -185,3 +185,12 @@ def EuropeanExchangeOption(underlying_price1, underlying_price2, quantity1, quan
     d2 = d1 - v * np.sqrt(maturity)
     return quantity1 * underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * norm.cdf(
         d1) - quantity2 * underlying_price2 * np.exp((carry_cost2 - rate) * maturity) * norm.cdf(d2)
+
+
+def DiscreteAdjustedBarrier(underlying_price,barrier,vol,delta_time):
+    if barrier>underlying_price:
+        return barrier*np.exp(0.5826*vol*np.sqrt(delta_time))
+    elif barrier<underlying_price:
+        return barrier*np.exp(-0.5826*vol*np.sqrt(delta_time))
+    else:
+        return 0
