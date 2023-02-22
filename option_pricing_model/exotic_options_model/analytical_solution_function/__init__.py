@@ -813,7 +813,8 @@ class ExoticOPtions(object):
             return BSM(underlying_price,strike_price,maturity,rate,carry_cost,vol,'call')-OutValue
         elif options_type.lower() =='pi':
             return BSM(underlying_price,strike_price,maturity,rate,carry_cost,vol,'put')-OutValue
-
+        else:
+            raise TypeError
 
 
 if __name__ == '__main__':
