@@ -709,7 +709,7 @@ class ExoticOPtions(object):
                 2 * mu) * norm.cdf(eta * y2 - eta * vol * np.sqrt(maturity)))
         f6 = cash_rate * ((barrier / underlying_price) ** (mu + lambda_) * norm.cdf(eta * Z) + (
                 barrier / underlying_price) ** (mu - lambda_) * norm.cdf(eta * Z - 2 * eta *
-                                                                           lambda_ * vol * np.sqrt(maturity)))
+                                                                         lambda_ * vol * np.sqrt(maturity)))
 
         if strike_price > barrier:
             if options_type.lower() == 'cdi':
@@ -749,6 +749,71 @@ class ExoticOPtions(object):
                 return f1 - f3 + f6
             else:
                 raise TypeError
+
+    @staticmethod
+    def Double_Barrier_Options(underlying_price, strike_price, low_barrier, high_barrier, maturity, rate,
+                               carry_cost, vol,options_type,curvature_upper,curvature_lower):
+        """
+        standard barrier option
+        :param underlying_price: asset underlying price
+        :param low_barrier: lower barrier price for out or in
+        :param high_barrier: higher barrier price for out or in
+        :param cash_rate: price after reatching barrier price
+        :param maturity: time to maturity
+        :param rate: risk-free risk
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: user must use 1~4 number as input
+        :param curvature_upper: uppder curvature for double barrier options
+        :param curvature_bottom: lower curvature for double barrier options
+        :return: options price
+        """
+        F = high_barrier * np.exp(curvature_upper * maturity)
+        E = low_barrier * np.exp(curvature_upper * maturity)
+        Sum1 = 0
+        Sum2 = 0
+
+        if options_type.lower() in ['co','ci']:
+            for n in range(-5,6):
+                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (F * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d3 = (np.log(low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d4 = (np.log(low_barrier ** (2 * n + 2) / (F * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                mu1 = 2 * (carry_cost - curvature_lower - n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
+                mu2 = 2 * n * (curvature_upper - curvature_lower) / vol ** 2
+                mu3 = 2 * (carry_cost - curvature_lower + n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
+                Sum1 = Sum1 + (high_barrier ** n / low_barrier ** n) ** mu1 * (low_barrier / underlying_price) ** mu2 * (norm.cdf(d1) - norm.cdf(d2)) - (
+                            low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** mu3 * (norm.cdf(d3) - norm.cdf(d4))
+                Sum2 = Sum2 + (high_barrier ** n / low_barrier ** n) ** (mu1 - 2) * (low_barrier / underlying_price) ** mu2 * (
+                            norm.cdf(d1 - vol * np.sqrt(maturity)) - norm.cdf(d2 - vol * np.sqrt(maturity))) - (low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** (mu3 - 2) * (
+                                   norm.cdf(d3 - vol * np.sqrt(maturity)) - norm.cdf(d4 - vol * np.sqrt(maturity)))
+
+            OutValue = underlying_price * np.exp((carry_cost - rate) * maturity) * Sum1 - strike_price * np.exp(-rate * maturity) * Sum2
+        elif options_type.lower() in ['po','pi']:
+            for n in range(-5, 6):
+                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (E * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d3 = (np.log(low_barrier ** (2 * n + 2) / (E * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d4 = (np.log(low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                mu1 = 2 * (carry_cost - curvature_lower - n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
+                mu2 = 2 * n * (curvature_upper - curvature_lower) / vol ** 2
+                mu3 = 2 * (carry_cost - curvature_lower + n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
+                Sum1 = Sum1 + (high_barrier ** n / low_barrier ** n) ** mu1 * (low_barrier / underlying_price) ** mu2 * (norm.cdf(d1) - norm.cdf(d2)) - (
+                            low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** mu3 * (norm.cdf(d3) - norm.cdf(d4))
+                Sum2 = Sum2 + (high_barrier ** n / low_barrier ** n) ** (mu1 - 2) * (low_barrier / underlying_price) ** mu2 * (
+                            norm.cdf(d1 - vol * np.sqrt(maturity)) - norm.cdf(d2 - vol * np.sqrt(maturity))) - (low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** (mu3 - 2) * (
+                                   norm.cdf(d3 - vol * np.sqrt(maturity)) - norm.cdf(d4 - vol * np.sqrt(maturity)))
+            OutValue = strike_price * np.exp(-rate * maturity) * Sum2 - underlying_price * np.exp((carry_cost - rate) * maturity) * Sum1
+        else:
+            raise TypeError('only supporting "co/ci/po/pi"')
+
+        if options_type.lower() in ['co','po']:
+            return OutValue
+        elif options_type.lower() =='ci':
+            return BSM(underlying_price,strike_price,maturity,rate,carry_cost,vol,'call')-OutValue
+        elif options_type.lower() =='pi':
+            return BSM(underlying_price,strike_price,maturity,rate,carry_cost,vol,'put')-OutValue
+
 
 
 if __name__ == '__main__':
@@ -818,7 +883,7 @@ if __name__ == '__main__':
     print('reversed extreme spread put',
           ExoticOPtions.Extreme_Spread_Options(100, 80, 120, 0.25, 1, 0.1, 0.1, 0.3, 4))
     print('standard barrier options with down-in-call',
-          ExoticOPtions.Standard_Barrier_Options(100,100,115,3,0.5,0.08,0.04,0.2,'cdi'))
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'cdi'))
     print('standard barrier options with up-in-call',
           ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'cui'))
     print('standard barrier options with down-in-put',
@@ -826,10 +891,18 @@ if __name__ == '__main__':
     print('standard barrier options with up-in-put',
           ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'pui'))
     print('standard barrier options with down-out-call',
-          ExoticOPtions.Standard_Barrier_Options(100,100,115,3,0.5,0.08,0.04,0.2,'cdo'))
+          ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'cdo'))
     print('standard barrier options with up-out-call',
           ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'cuo'))
     print('standard barrier options with down-out-put',
           ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'pdo'))
     print('standard barrier options with up-out-put',
           ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'puo'))
+    print('double barrier options with Call up-and-out-down-and-out',
+          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'co',0,0))
+    print('double barrier options with Call Put up-and-out-down-and-out',
+          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'po',0,0))
+    print('double barrier options with Call up-and-in-down-and-in',
+          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'ci',0,0))
+    print('double barrier options with Call Put up-and-in-down-and-in',
+          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'pi',0,0))
