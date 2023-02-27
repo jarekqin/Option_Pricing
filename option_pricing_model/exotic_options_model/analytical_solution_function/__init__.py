@@ -590,14 +590,14 @@ class ExoticOPtions(object):
                 (carry_cost - rate) * maturity) * norm.cdf(-f1) * norm.cdf(e2)
 
     @staticmethod
-    def Extreme_Spread_Options(underlying_price, observed_min, observed_max, t1, maturity, rate, carry_cost, vol,
+    def Extreme_Spread_Options(underlying_price, observed_min, observed_max, maturity1, maturity, rate, carry_cost, vol,
                                options_type):
         """
         partial fixed lookback options
         :param underlying_price: asset underlying price
         :param observed_min: minimum observed price
         :param observed_max: maximum observed priceength
-        :param t1: first time priod
+        :param maturity1: first time priod
         :param maturity: time to maturity
         :param rate: risk-free risk
         :param carry_cost: carry cost
@@ -628,17 +628,17 @@ class ExoticOPtions(object):
             return eta * (underlying_price * np.exp((carry_cost - rate) * maturity) * (
                     1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
                 eta * (-m + mu * maturity) / (vol * np.sqrt(maturity))) - np.exp(
-                -rate * (maturity - t1)) * underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                -rate * (maturity - maturity1)) * underlying_price * np.exp((carry_cost - rate) * maturity) * (
                                   1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
-                eta * (-m + mu * t1) / (vol * np.sqrt(t1))) + np.exp(-rate * maturity) * Mo * norm.cdf(
+                eta * (-m + mu * maturity1) / (vol * np.sqrt(maturity1))) + np.exp(-rate * maturity) * Mo * norm.cdf(
                 eta * (m - mu1 * maturity) / (vol * np.sqrt(maturity))) - np.exp(
                 -rate * maturity) * Mo * vol ** 2 / (
                                   2 * carry_cost) * np.exp(2 * mu1 * m / vol ** 2) * norm.cdf(
                 eta * (-m - mu1 * maturity) / (vol * np.sqrt(maturity))) - np.exp(
-                -rate * maturity) * Mo * norm.cdf(eta * (m - mu1 * t1) / (vol * np.sqrt(t1))) + np.exp(
+                -rate * maturity) * Mo * norm.cdf(eta * (m - mu1 * maturity1) / (vol * np.sqrt(maturity1))) + np.exp(
                 -rate * maturity) * Mo * vol ** 2 / (
                                   2 * carry_cost) * np.exp(2 * mu1 * m / vol ** 2) * norm.cdf(
-                eta * (-m - mu1 * t1) / (vol * np.sqrt(t1))))
+                eta * (-m - mu1 * maturity1) / (vol * np.sqrt(maturity1))))
         else:
             return -eta * (underlying_price * np.exp((carry_cost - rate) * maturity) * (
                     1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
@@ -647,10 +647,10 @@ class ExoticOPtions(object):
                                    2 * carry_cost) * np.exp(2 * mu1 * m / vol ** 2) * norm.cdf(
                 eta * (m + mu1 * maturity) / (vol * np.sqrt(maturity))) - underlying_price * np.exp(
                 (carry_cost - rate) * maturity) * (1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
-                eta * (-mu * (maturity - t1)) / (vol * np.sqrt(maturity - t1))) - np.exp(
-                -rate * (maturity - t1)) * underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                eta * (-mu * (maturity - maturity1)) / (vol * np.sqrt(maturity - maturity1))) - np.exp(
+                -rate * (maturity - maturity1)) * underlying_price * np.exp((carry_cost - rate) * maturity) * (
                                    1 - vol ** 2 / (2 * carry_cost)) * norm.cdf(
-                eta * (mu1 * (maturity - t1)) / (vol * np.sqrt(maturity - t1))))
+                eta * (mu1 * (maturity - maturity1)) / (vol * np.sqrt(maturity - maturity1))))
 
     @staticmethod
     def Standard_Barrier_Options(underlying_price, strike_price, barrier, cash_rate, maturity, rate, carry_cost, vol,
@@ -752,9 +752,9 @@ class ExoticOPtions(object):
 
     @staticmethod
     def Double_Barrier_Options(underlying_price, strike_price, low_barrier, high_barrier, maturity, rate,
-                               carry_cost, vol,options_type,curvature_upper,curvature_lower):
+                               carry_cost, vol, options_type, curvature_upper, curvature_lower):
         """
-        standard barrier option
+        double barrier option
         :param underlying_price: asset underlying price
         :param low_barrier: lower barrier price for out or in
         :param high_barrier: higher barrier price for out or in
@@ -773,48 +773,190 @@ class ExoticOPtions(object):
         Sum1 = 0
         Sum2 = 0
 
-        if options_type.lower() in ['co','ci']:
-            for n in range(-5,6):
-                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (F * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d3 = (np.log(low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d4 = (np.log(low_barrier ** (2 * n + 2) / (F * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                mu1 = 2 * (carry_cost - curvature_lower - n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
-                mu2 = 2 * n * (curvature_upper - curvature_lower) / vol ** 2
-                mu3 = 2 * (carry_cost - curvature_lower + n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
-                Sum1 = Sum1 + (high_barrier ** n / low_barrier ** n) ** mu1 * (low_barrier / underlying_price) ** mu2 * (norm.cdf(d1) - norm.cdf(d2)) - (
-                            low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** mu3 * (norm.cdf(d3) - norm.cdf(d4))
-                Sum2 = Sum2 + (high_barrier ** n / low_barrier ** n) ** (mu1 - 2) * (low_barrier / underlying_price) ** mu2 * (
-                            norm.cdf(d1 - vol * np.sqrt(maturity)) - norm.cdf(d2 - vol * np.sqrt(maturity))) - (low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** (mu3 - 2) * (
-                                   norm.cdf(d3 - vol * np.sqrt(maturity)) - norm.cdf(d4 - vol * np.sqrt(maturity)))
-
-            OutValue = underlying_price * np.exp((carry_cost - rate) * maturity) * Sum1 - strike_price * np.exp(-rate * maturity) * Sum2
-        elif options_type.lower() in ['po','pi']:
+        if options_type.lower() in ['co', 'ci']:
             for n in range(-5, 6):
-                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (E * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d3 = (np.log(low_barrier ** (2 * n + 2) / (E * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d4 = (np.log(low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (
+                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (F * low_barrier ** (2 * n))) + (
+                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d3 = (np.log(
+                    low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (
+                              carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d4 = (np.log(low_barrier ** (2 * n + 2) / (F * underlying_price * high_barrier ** (2 * n))) + (
+                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
                 mu1 = 2 * (carry_cost - curvature_lower - n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
                 mu2 = 2 * n * (curvature_upper - curvature_lower) / vol ** 2
                 mu3 = 2 * (carry_cost - curvature_lower + n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
-                Sum1 = Sum1 + (high_barrier ** n / low_barrier ** n) ** mu1 * (low_barrier / underlying_price) ** mu2 * (norm.cdf(d1) - norm.cdf(d2)) - (
-                            low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** mu3 * (norm.cdf(d3) - norm.cdf(d4))
-                Sum2 = Sum2 + (high_barrier ** n / low_barrier ** n) ** (mu1 - 2) * (low_barrier / underlying_price) ** mu2 * (
-                            norm.cdf(d1 - vol * np.sqrt(maturity)) - norm.cdf(d2 - vol * np.sqrt(maturity))) - (low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** (mu3 - 2) * (
-                                   norm.cdf(d3 - vol * np.sqrt(maturity)) - norm.cdf(d4 - vol * np.sqrt(maturity)))
-            OutValue = strike_price * np.exp(-rate * maturity) * Sum2 - underlying_price * np.exp((carry_cost - rate) * maturity) * Sum1
+                Sum1 = Sum1 + (high_barrier ** n / low_barrier ** n) ** mu1 * (
+                        low_barrier / underlying_price) ** mu2 * (norm.cdf(d1) - norm.cdf(d2)) - (
+                               low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** mu3 * (
+                               norm.cdf(d3) - norm.cdf(d4))
+                Sum2 = Sum2 + (high_barrier ** n / low_barrier ** n) ** (mu1 - 2) * (
+                        low_barrier / underlying_price) ** mu2 * (
+                               norm.cdf(d1 - vol * np.sqrt(maturity)) - norm.cdf(d2 - vol * np.sqrt(maturity))) - (
+                               low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** (mu3 - 2) * (
+                               norm.cdf(d3 - vol * np.sqrt(maturity)) - norm.cdf(d4 - vol * np.sqrt(maturity)))
+
+            OutValue = underlying_price * np.exp((carry_cost - rate) * maturity) * Sum1 - strike_price * np.exp(
+                -rate * maturity) * Sum2
+        elif options_type.lower() in ['po', 'pi']:
+            for n in range(-5, 6):
+                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (E * low_barrier ** (2 * n))) + (
+                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (
+                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d3 = (np.log(low_barrier ** (2 * n + 2) / (E * underlying_price * high_barrier ** (2 * n))) + (
+                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d4 = (np.log(
+                    low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (
+                              carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                mu1 = 2 * (carry_cost - curvature_lower - n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
+                mu2 = 2 * n * (curvature_upper - curvature_lower) / vol ** 2
+                mu3 = 2 * (carry_cost - curvature_lower + n * (curvature_upper - curvature_lower)) / vol ** 2 + 1
+                Sum1 = Sum1 + (high_barrier ** n / low_barrier ** n) ** mu1 * (
+                        low_barrier / underlying_price) ** mu2 * (norm.cdf(d1) - norm.cdf(d2)) - (
+                               low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** mu3 * (
+                               norm.cdf(d3) - norm.cdf(d4))
+                Sum2 = Sum2 + (high_barrier ** n / low_barrier ** n) ** (mu1 - 2) * (
+                        low_barrier / underlying_price) ** mu2 * (
+                               norm.cdf(d1 - vol * np.sqrt(maturity)) - norm.cdf(d2 - vol * np.sqrt(maturity))) - (
+                               low_barrier ** (n + 1) / (high_barrier ** n * underlying_price)) ** (mu3 - 2) * (
+                               norm.cdf(d3 - vol * np.sqrt(maturity)) - norm.cdf(d4 - vol * np.sqrt(maturity)))
+            OutValue = strike_price * np.exp(-rate * maturity) * Sum2 - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * Sum1
         else:
             raise TypeError('only supporting "co/ci/po/pi"')
 
-        if options_type.lower() in ['co','po']:
+        if options_type.lower() in ['co', 'po']:
             return OutValue
-        elif options_type.lower() =='ci':
-            return BSM(underlying_price,strike_price,maturity,rate,carry_cost,vol,'call')-OutValue
-        elif options_type.lower() =='pi':
-            return BSM(underlying_price,strike_price,maturity,rate,carry_cost,vol,'put')-OutValue
+        elif options_type.lower() == 'ci':
+            return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'call') - OutValue
+        elif options_type.lower() == 'pi':
+            return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'put') - OutValue
         else:
             raise TypeError
+
+    @staticmethod
+    def Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1, maturity2, rate,
+                                carry_cost, vol, options_type):
+        """
+        partial barrier option
+        :param underlying_price: asset underlying price
+        :param barrier:barrier price for out or in
+        :param cash_rate: price after reatching barrier price
+        :param maturity: time to maturity
+        :param rate: risk-free risk
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: user must use 1~4 number as input
+        :return: options price
+        """
+        if options_type.lower() == 'cdoa':
+            eta = 1
+        elif options_type.lower() == 'cuoa':
+            eta = -1
+        d1 = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity2) / (
+                vol * np.sqrt(maturity2))
+        d2 = d1 - vol * np.sqrt(maturity2)
+        f1 = (np.log(underlying_price / strike_price) + 2 * np.log(barrier / underlying_price) + (
+                carry_cost + vol ** 2 / 2) * maturity2) / (vol * np.sqrt(maturity2))
+        f2 = f1 - vol * np.sqrt(maturity2)
+        e1 = (np.log(underlying_price / barrier) + (carry_cost + vol ** 2 / 2) * maturity1) / (vol * np.sqrt(maturity1))
+        e2 = e1 - vol * np.sqrt(maturity1)
+        e3 = e1 + 2 * np.log(barrier / underlying_price) / (vol * np.sqrt(maturity1))
+        e4 = e3 - vol * np.sqrt(maturity1)
+        mu = (carry_cost - vol ** 2 / 2) / vol ** 2
+        rho = np.sqrt(maturity1 / maturity2)
+        g1 = (np.log(underlying_price / barrier) + (carry_cost + vol ** 2 / 2) * maturity2) / (vol * np.sqrt(maturity2))
+        g2 = g1 - vol * np.sqrt(maturity2)
+        g3 = g1 + 2 * np.log(barrier / underlying_price) / (vol * np.sqrt(maturity2))
+        g4 = g3 - vol * np.sqrt(maturity2)
+
+        z1 = norm.cdf(e2) - (barrier / underlying_price) ** (2 * mu) * norm.cdf(e4)
+        z2 = norm.cdf(-e2) - (barrier / underlying_price) ** (2 * mu) * norm.cdf(-e4)
+        z3 = CBND(g2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -rho)
+        z4 = CBND(-g2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -rho)
+        z5 = norm.cdf(e1) - (barrier / underlying_price) ** (2 * (mu + 1)) * norm.cdf(e3)
+        z6 = norm.cdf(-e1) - (barrier / underlying_price) ** (2 * (mu + 1)) * norm.cdf(-e3)
+        z7 = CBND(g1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -rho)
+        z8 = CBND(-g1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -rho)
+
+        if options_type.lower() in ['cdoa', 'cuoa']:
+            result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                    CBND(d1, eta * e1, eta * rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(f1, eta * e3,
+                                                                                                          eta * rho)) - \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(d2, eta * e2, eta * rho) - (barrier / underlying_price) ** (2 * mu) * CBND(f2,
+                                                                                                             eta * e4,
+                                                                                                             eta * rho))
+        elif options_type.lower() == 'cdob2' and strike_price < barrier:
+            result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                    CBND(g1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -rho)) - \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(g2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -rho))
+        elif options_type.lower() == 'cdob2' and strike_price > barrier:
+            result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
+                                                           maturity2, rate, carry_cost, vol, "coB1")
+        elif options_type.lower() == 'cuob2' and strike_price < barrier:
+            result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                    CBND(-g1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -rho)) - \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(-g2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -rho)) - \
+                     underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                             CBND(-d1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(e3, -f1,
+                                                                                                         -rho)) + \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(-d2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(e4, -f2, -rho))
+        elif options_type.lower() == 'cob1' and strike_price > barrier:
+            result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                    CBND(d1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(f1, -e3, -rho)) - \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(d2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(f2, -e4, -rho))
+        elif options_type.lower() == 'cob1' and strike_price < barrier:
+            result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                    CBND(-g1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -rho)) - \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(-g2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -rho)) - \
+                     underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                             CBND(-d1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-f1, e3,
+                                                                                                         -rho)) + \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(-d2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-f2, e4, -rho)) + \
+                     underlying_price * np.exp((carry_cost - rate) * maturity2) * (
+                             CBND(g1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -rho)) - \
+                     strike_price * np.exp(-rate * maturity2) * (
+                             CBND(g2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -rho))
+        elif options_type.lower() == 'pdoa':
+            result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
+                                                           maturity2, rate, carry_cost, vol,
+                                                           "cdoA") - underlying_price * np.exp(
+                (carry_cost - rate) * maturity2) * z5 + strike_price * np.exp(-rate * maturity2) * z1
+        elif options_type.lower() == 'puoa':
+            result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
+                                                           maturity2, rate, carry_cost, vol,
+                                                           "cuoA") - underlying_price * np.exp(
+                (carry_cost - rate) * maturity2) * z6 + strike_price * np.exp(-rate * maturity2) * z2
+        elif options_type.lower() == 'pob1':
+            result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
+                                                           maturity2, rate, carry_cost, vol,
+                                                           "coB1") - underlying_price * np.exp(
+                (carry_cost - rate) * maturity2) * z8 + strike_price * np.exp(
+                -rate * maturity2) * z4 - underlying_price * np.exp(
+                (carry_cost - rate) * maturity2) * z7 + strike_price * np.exp(-rate * maturity2) * z3
+        elif options_type.lower() == 'pdob2':
+            result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
+                                                           maturity2, rate, carry_cost, vol,
+                                                           "cdoB2") - underlying_price * np.exp(
+                (carry_cost - rate) * maturity2) * z7 + strike_price * np.exp(-rate * maturity2) * z3
+        elif options_type.lower() == 'puob2':
+            result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
+                                                           maturity2, rate, carry_cost, vol,
+                                                           "cuoB2") - underlying_price * np.exp(
+                (carry_cost - rate) * maturity2) * z8 + strike_price * np.exp(-rate * maturity2) * z4
+        else:
+            raise TypeError
+
+        return result
 
 
 if __name__ == '__main__':
@@ -900,10 +1042,30 @@ if __name__ == '__main__':
     print('standard barrier options with up-out-put',
           ExoticOPtions.Standard_Barrier_Options(100, 100, 115, 3, 0.5, 0.08, 0.04, 0.2, 'puo'))
     print('double barrier options with Call up-and-out-down-and-out',
-          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'co',0,0))
+          ExoticOPtions.Double_Barrier_Options(100, 100, 90, 105, 0.25, 0.1, 0.1, 0.25, 'co', 0, 0))
     print('double barrier options with Call Put up-and-out-down-and-out',
-          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'po',0,0))
+          ExoticOPtions.Double_Barrier_Options(100, 100, 90, 105, 0.25, 0.1, 0.1, 0.25, 'po', 0, 0))
     print('double barrier options with Call up-and-in-down-and-in',
-          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'ci',0,0))
+          ExoticOPtions.Double_Barrier_Options(100, 100, 90, 105, 0.25, 0.1, 0.1, 0.25, 'ci', 0, 0))
     print('double barrier options with Call Put up-and-in-down-and-in',
-          ExoticOPtions.Double_Barrier_Options(100,100,90,105,0.25,0.1,0.1,0.25,'pi',0,0))
+          ExoticOPtions.Double_Barrier_Options(100, 100, 90, 105, 0.25, 0.1, 0.1, 0.25, 'pi', 0, 0))
+    print('partial barrier options with up-and-out call a',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cuoa'))
+    print('partial barrier options with down-and-out call a ',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cdoa'))
+    print('partial barrier options with up-and-out put a ',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'puoa'))
+    print('partial barrier options with down-and-out put a',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pdoa'))
+    print('partial barrier options with down-and-out call b1',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cob1'))
+    print('partial barrier options with down-and-out put b1',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pob1'))
+    print('partial barrier options with up-and-out call b2',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cuob2'))
+    print('partial barrier options with down-and-out call b2',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cdob2'))
+    print('partial barrier options with up-and-out put b2',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'puob2'))
+    print('partial barrier options with down-and-out put b2',
+          ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pdob2'))
