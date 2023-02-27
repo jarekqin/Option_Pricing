@@ -958,6 +958,70 @@ class ExoticOPtions(object):
 
         return result
 
+    @staticmethod
+    def Two_Asets_Barrier_Options(underlying_price1, underlying_price2, strike_price, barrier, maturity,
+                                  rate, carry_cost1, carry_cost2, vol1, vol2, corr_, options_type):
+        """
+        2 assets barrier options
+        :param underlying_price1: price on asset1
+        :param underlying_price2: price on asset2
+        :param strike_price: strike price on 2 assets barrier options
+        :param barrier: barrier price
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost1: carry cost on asset1
+        :param carry_cost2: carry cost on asset2
+        :param vol1: volatility on asset1
+        :param vol2: volatility on asset2
+        :param corr_: correlation between asset1 and asset2
+        :param options_type: options type
+        :return: option price
+        """
+
+        mu1 = carry_cost1 - vol1 ** 2 / 2
+        mu2 = carry_cost2 - vol2 ** 2 / 2
+
+        d1 = (np.log(underlying_price1 / strike_price) + (mu1 + vol1 ** 2 / 2) * maturity) / (vol1 * np.sqrt(maturity))
+        d2 = d1 - vol1 * np.sqrt(maturity)
+        d3 = d1 + 2 * corr_ * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(maturity))
+        d4 = d2 + 2 * corr_ * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(maturity))
+        e1 = (np.log(barrier / underlying_price2) - (mu2 + corr_ * vol1 * vol2) * maturity) / (vol2 * np.sqrt(maturity))
+        e2 = e1 + corr_ * vol1 * np.sqrt(maturity)
+        e3 = e1 - 2 * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(maturity))
+        e4 = e2 - 2 * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(maturity))
+
+        if options_type.lower() in ['cuo', 'cui']:
+            eta = 1
+            phi = 1
+        elif options_type.lower() in ['cdo', 'cdi']:
+            eta = 1
+            phi = -1
+        elif options_type.lower() in ['puo', 'pui']:
+            eta = -1
+            phi = 1
+        elif options_type.lower() in ['pdo', 'pdi']:
+            eta = -1
+            phi = -1
+        else:
+            raise TypeError
+
+        knock_out_value = eta * underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * (
+                CBND(eta * d1, phi * e1, -eta * phi * corr_) - \
+                np.exp(2 * (mu2 + corr_ * vol1 * vol2) * np.log(barrier / underlying_price2) / vol2 ** 2) * CBND(
+            eta * d3, phi * e3, -eta * phi * corr_)) - eta * np.exp(-rate * maturity) * strike_price * (
+                                  CBND(eta * d2, phi * e2, -eta * phi * corr_) - \
+                                  np.exp(2 * mu2 * np.log(barrier / underlying_price2) / vol2 ** 2) * CBND(eta * d4,
+                                                                                                           phi * e4,
+                                                                                                           -eta * phi * corr_))
+        if options_type.lower() in ['cuo', 'cdo', 'puo', 'pdo']:
+            return knock_out_value
+        elif options_type.lower() in ['cui', 'cdi']:
+            return BSM(underlying_price1, strike_price, maturity, rate, carry_cost1, vol1, 'call') - knock_out_value
+        elif options_type.lower() in ['pui', 'pdi']:
+            return BSM(underlying_price1, strike_price, maturity, rate, carry_cost1, vol1, 'put') - knock_out_value
+        else:
+            raise TypeError
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1057,15 +1121,31 @@ if __name__ == '__main__':
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'puoa'))
     print('partial barrier options with down-and-out put a',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pdoa'))
-    print('partial barrier options with down-and-out call b1',
+    print('partial barrier options with down-and-out call carry_cost1',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cob1'))
-    print('partial barrier options with down-and-out put b1',
+    print('partial barrier options with down-and-out put carry_cost1',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pob1'))
-    print('partial barrier options with up-and-out call b2',
+    print('partial barrier options with up-and-out call carry_cost2',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cuob2'))
-    print('partial barrier options with down-and-out call b2',
+    print('partial barrier options with down-and-out call carry_cost2',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'cdob2'))
-    print('partial barrier options with up-and-out put b2',
+    print('partial barrier options with up-and-out put carry_cost2',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'puob2'))
-    print('partial barrier options with down-and-out put b2',
+    print('partial barrier options with down-and-out put carry_cost2',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pdob2'))
+    print('partial barrier options with down-and-in call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cdi'))
+    print('partial barrier options with up-and-in call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cui'))
+    print('partial barrier options with down-and-in put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'pdi'))
+    print('partial barrier options with up-and-in put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'pui'))
+    print('partial barrier options with down-and-out call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cdo'))
+    print('partial barrier options with up-and-out call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cuo'))
+    print('partial barrier options with down-and-out put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'pdo'))
+    print('partial barrier options with up-and-out put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'puo'))
