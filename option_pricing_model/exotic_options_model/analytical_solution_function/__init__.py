@@ -866,7 +866,7 @@ class ExoticOPtions(object):
         e3 = e1 + 2 * np.log(barrier / underlying_price) / (vol * np.sqrt(maturity1))
         e4 = e3 - vol * np.sqrt(maturity1)
         mu = (carry_cost - vol ** 2 / 2) / vol ** 2
-        rho = np.sqrt(maturity1 / maturity2)
+        corr_ = np.sqrt(maturity1 / maturity2)
         g1 = (np.log(underlying_price / barrier) + (carry_cost + vol ** 2 / 2) * maturity2) / (vol * np.sqrt(maturity2))
         g2 = g1 - vol * np.sqrt(maturity2)
         g3 = g1 + 2 * np.log(barrier / underlying_price) / (vol * np.sqrt(maturity2))
@@ -874,58 +874,60 @@ class ExoticOPtions(object):
 
         z1 = norm.cdf(e2) - (barrier / underlying_price) ** (2 * mu) * norm.cdf(e4)
         z2 = norm.cdf(-e2) - (barrier / underlying_price) ** (2 * mu) * norm.cdf(-e4)
-        z3 = CBND(g2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -rho)
-        z4 = CBND(-g2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -rho)
+        z3 = CBND(g2, e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -corr_)
+        z4 = CBND(-g2, -e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -corr_)
         z5 = norm.cdf(e1) - (barrier / underlying_price) ** (2 * (mu + 1)) * norm.cdf(e3)
         z6 = norm.cdf(-e1) - (barrier / underlying_price) ** (2 * (mu + 1)) * norm.cdf(-e3)
-        z7 = CBND(g1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -rho)
-        z8 = CBND(-g1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -rho)
+        z7 = CBND(g1, e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -corr_)
+        z8 = CBND(-g1, -e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -corr_)
 
         if options_type.lower() in ['cdoa', 'cuoa']:
             result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                    CBND(d1, eta * e1, eta * rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(f1, eta * e3,
-                                                                                                          eta * rho)) - \
+                    CBND(d1, eta * e1, eta * corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(f1,
+                                                                                                            eta * e3,
+                                                                                                            eta * corr_)) - \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(d2, eta * e2, eta * rho) - (barrier / underlying_price) ** (2 * mu) * CBND(f2,
-                                                                                                             eta * e4,
-                                                                                                             eta * rho))
+                             CBND(d2, eta * e2, eta * corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(f2,
+                                                                                                               eta * e4,
+                                                                                                               eta * corr_))
         elif options_type.lower() == 'cdob2' and strike_price < barrier:
             result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                    CBND(g1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -rho)) - \
+                    CBND(g1, e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -corr_)) - \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(g2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -rho))
+                             CBND(g2, e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -corr_))
         elif options_type.lower() == 'cdob2' and strike_price > barrier:
             result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
                                                            maturity2, rate, carry_cost, vol, "coB1")
         elif options_type.lower() == 'cuob2' and strike_price < barrier:
             result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                    CBND(-g1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -rho)) - \
+                    CBND(-g1, -e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -corr_)) - \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(-g2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -rho)) - \
+                             CBND(-g2, -e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -corr_)) - \
                      underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                             CBND(-d1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(e3, -f1,
-                                                                                                         -rho)) + \
+                             CBND(-d1, -e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(e3, -f1,
+                                                                                                           -corr_)) + \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(-d2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(e4, -f2, -rho))
+                             CBND(-d2, -e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(e4, -f2, -corr_))
         elif options_type.lower() == 'cob1' and strike_price > barrier:
             result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                    CBND(d1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(f1, -e3, -rho)) - \
+                    CBND(d1, e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(f1, -e3, -corr_)) - \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(d2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(f2, -e4, -rho))
+                             CBND(d2, e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(f2, -e4, -corr_))
         elif options_type.lower() == 'cob1' and strike_price < barrier:
             result = underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                    CBND(-g1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -rho)) - \
+                    CBND(-g1, -e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-g3, e3, -corr_)) - \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(-g2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -rho)) - \
+                             CBND(-g2, -e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(-g4, e4, -corr_)) - \
                      underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                             CBND(-d1, -e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-f1, e3,
-                                                                                                         -rho)) + \
+                             CBND(-d1, -e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(-f1, e3,
+                                                                                                           -corr_)) + \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(-d2, -e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(-f2, e4, -rho)) + \
+                             CBND(-d2, -e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(-f2, e4, -corr_)) + \
                      underlying_price * np.exp((carry_cost - rate) * maturity2) * (
-                             CBND(g1, e1, rho) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3, -rho)) - \
+                             CBND(g1, e1, corr_) - (barrier / underlying_price) ** (2 * (mu + 1)) * CBND(g3, -e3,
+                                                                                                         -corr_)) - \
                      strike_price * np.exp(-rate * maturity2) * (
-                             CBND(g2, e2, rho) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -rho))
+                             CBND(g2, e2, corr_) - (barrier / underlying_price) ** (2 * mu) * CBND(g4, -e4, -corr_))
         elif options_type.lower() == 'pdoa':
             result = ExoticOPtions.Partial_Barrier_Options(underlying_price, strike_price, barrier, maturity1,
                                                            maturity2, rate, carry_cost, vol,
@@ -1019,6 +1021,68 @@ class ExoticOPtions(object):
             return BSM(underlying_price1, strike_price, maturity, rate, carry_cost1, vol1, 'call') - knock_out_value
         elif options_type.lower() in ['pui', 'pdi']:
             return BSM(underlying_price1, strike_price, maturity, rate, carry_cost1, vol1, 'put') - knock_out_value
+        else:
+            raise TypeError
+
+    @staticmethod
+    def Partial_Two_Asets_Barrier_Options(underlying_price1, underlying_price2, strike_price, barrier,
+                                          barrier_holding_life, maturity, rate, carry_cost1, carry_cost2,
+                                          vol1, vol2, corr_, options_type):
+        """
+        2 assets barrier options
+        :param underlying_price1: price on asset1
+        :param underlying_price2: price on asset2
+        :param strike_price: strike price on 2 assets barrier options
+        :param barrier: barrier price
+        :param barrier_holding_life: barrier holding lifeprice
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost1: carry cost on asset1
+        :param carry_cost2: carry cost on asset2
+        :param vol1: volatility on asset1
+        :param vol2: volatility on asset2
+        :param corr_: correlation between asset1 and asset2
+        :param options_type: options type
+        :return: option price
+        """
+        if options_type.lower() in ['cdo', 'pdo', 'cdi', 'pdi']:
+            phi = -1
+        else:
+            phi = 1
+
+        if options_type.lower() in ['cuo', 'cdo', 'cdi', 'cui']:
+            eta = 1
+        else:
+            eta = -1
+        mu1 = carry_cost1 - vol1 ** 2 / 2
+        mu2 = carry_cost2 - vol2 ** 2 / 2
+        d1 = (np.log(underlying_price1 / strike_price) + (mu1 + vol1 ** 2) * maturity) / (vol1 * np.sqrt(maturity))
+        d2 = d1 - vol1 * np.sqrt(maturity)
+        d3 = d1 + 2 * corr_ * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(maturity))
+        d4 = d2 + 2 * corr_ * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(maturity))
+        e1 = (np.log(barrier / underlying_price2) - (mu2 + corr_ * vol1 * vol2) * barrier_holding_life) / (
+                vol2 * np.sqrt(barrier_holding_life))
+        e2 = e1 + corr_ * vol1 * np.sqrt(barrier_holding_life)
+        e3 = e1 - 2 * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(barrier_holding_life))
+        e4 = e2 - 2 * np.log(barrier / underlying_price2) / (vol2 * np.sqrt(barrier_holding_life))
+
+        OutBarrierValue = eta * underlying_price1 * np.exp((carry_cost1 - rate) * maturity) * (
+                CBND(eta * d1, phi * e1, -eta * phi * corr_ * np.sqrt(barrier_holding_life / maturity)) - np.exp(
+            2 * np.log(barrier / underlying_price2) * (mu2 + corr_ * vol1 * vol2) / (vol2 ** 2)) \
+                * CBND(eta * d3, phi * e3, -eta * phi * corr_ * np.sqrt(barrier_holding_life / maturity))) \
+                          - eta * np.exp(-rate * maturity) * strike_price * (
+                                  CBND(eta * d2, phi * e2,
+                                       -eta * phi * corr_ * np.sqrt(barrier_holding_life / maturity)) - np.exp(
+                              2 * np.log(barrier / underlying_price2) * mu2 / (vol2 ** 2)) \
+                                  * CBND(eta * d4, phi * e4,
+                                         -eta * phi * corr_ * np.sqrt(barrier_holding_life / maturity)))
+
+        if options_type.lower() in ['cdo', 'cuo', 'pdo', 'puo']:
+            return OutBarrierValue
+        elif options_type.lower() in ['cui', 'cdi']:
+            return BSM(underlying_price1, strike_price, maturity, rate, carry_cost1, vol1, 'call') - OutBarrierValue
+        elif options_type.lower() in ['pui', 'pdi']:
+            return BSM(underlying_price1, strike_price, maturity, rate, carry_cost1, vol1, 'put') - OutBarrierValue
         else:
             raise TypeError
 
@@ -1133,19 +1197,44 @@ if __name__ == '__main__':
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'puob2'))
     print('partial barrier options with down-and-out put carry_cost2',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pdob2'))
-    print('partial barrier options with down-and-in call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cdi'))
-    print('partial barrier options with up-and-in call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cui'))
-    print('partial barrier options with down-and-in put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'pdi'))
-    print('partial barrier options with up-and-in put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'pui'))
-    print('partial barrier options with down-and-out call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cdo'))
-    print('partial barrier options with up-and-out call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'cuo'))
-    print('partial barrier options with down-and-out put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'pdo'))
-    print('partial barrier options with up-and-out put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100,100,95,90,0.5,0.08,0,0,0.2,0.2,0.5,'puo'))
+    print('2 assets barrier options with down-and-in call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cdi'))
+    print('2 assets barrier options with up-and-in call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cui'))
+    print('2 assets barrier options with down-and-in put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pdi'))
+    print('2 assets barrier options with up-and-in put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pui'))
+    print('2 assets barrier options with down-and-out call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cdo'))
+    print('2 assets barrier options with up-and-out call',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cuo'))
+    print('2 assets barrier options with down-and-out put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pdo'))
+    print('2 assets barrier options with up-and-out put',
+          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'puo'))
+
+    print('partial 2 assets barrier options with down-and-in call',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'cdi'))
+    print('partial 2 assets barrier options with up-and-in call',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'cui'))
+    print('partial 2 assets barrier options with down-and-in put',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'pdi'))
+    print('partial 2 assets barrier options with up-and-in put',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'pui'))
+    print('partial 2 assets barrier options with down-and-out call',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'cdo'))
+    print('partial 2 assets barrier options with up-and-out call',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'cuo'))
+    print('partial 2 assets barrier options with down-and-out put',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'pdo'))
+    print('partial 2 assets barrier options with up-and-out put',
+          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                          'puo'))
