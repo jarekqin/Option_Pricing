@@ -1326,7 +1326,7 @@ if __name__ == '__main__':
           ExoticOPtions.Lookback_Barrier_Options(100,105,110,0.5,1,0.1,0.1,0.3,'cuo'))
     print('lookback barrier options with up-and-in call',
           ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'cui'))
+    print('lookback barrier options with down-and-in call',
+          ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'pdi'))
     print('lookback barrier options with down-and-out put',
               ExoticOPtions.Lookback_Barrier_Options(100,105,110,0.5,1,0.1,0.1,0.3,'pdo'))
-    print('lookback barrier options with down-and-in put',
-          ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'pdi'))
