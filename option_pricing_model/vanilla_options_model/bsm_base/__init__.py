@@ -51,8 +51,6 @@ def BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, options
             (carry_cost - rate) * maturity) * norm.cdf(-d1)
     else:
         raise NotImplemented
-    
-    
 
 
 def BSM_DELTA(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
@@ -92,7 +90,7 @@ def BSM_GAMMA(underlying_price, strike_price, maturity, rate, carry_cost, vol):
             vol * np.sqrt(maturity))
 
     return np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) / (
-                underlying_price * vol * np.sqrt(maturity))
+            underlying_price * vol * np.sqrt(maturity))
 
 
 def BSM_VEGA(underlying_price, strike_price, maturity, rate, carry_cost, vol):
@@ -141,6 +139,7 @@ def BSM_THETA(underlying_price, strike_price, maturity, rate, carry_cost, vol, o
     else:
         raise NotImplemented
 
+
 def BSM_RHO(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type='call'):
     """
     BSM options rho greek
@@ -170,7 +169,7 @@ def BSM_RHO(underlying_price, strike_price, maturity, rate, carry_cost, vol, opt
         raise NotImplemented
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     print(BSM(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))
     print(BSM(60, 65, 0.25, 0.08, 0.08, 0.3, 'put'))
     print('call delta', BSM_DELTA(60, 65, 0.25, 0.08, 0.08, 0.3, 'call'))

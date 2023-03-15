@@ -1086,6 +1086,90 @@ class ExoticOPtions(object):
         else:
             raise TypeError
 
+    @staticmethod
+    def Lookback_Barrier_Options(underlying_price, strike_price, barrier, barrier_holding_life, maturity, rate,
+                                 carry_cost, vol, options_type):
+        """
+        lookback barrier options
+        :param underlying_price: price on underlying
+        :param strike_price: strike price on options
+        :param barrier: barrier price
+        :param barrier_holding_life: barrier_holding_life
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: call/put
+        :return: options price
+        """
+        hh = np.log(barrier / underlying_price)
+        K = np.log(strike_price / underlying_price)
+        mu1 = carry_cost - vol ** 2 / 2
+        mu2 = carry_cost + vol ** 2 / 2
+        rho = np.sqrt(barrier_holding_life / maturity)
+
+        if options_type.lower() in ['cuo', 'cui']:
+            eta = 1
+            m = min(hh, K)
+        elif options_type.lower() in ['pdo', 'pdi']:
+            eta = -1
+            m = max(hh, K)
+        else:
+            raise TypeError
+        g1 = (norm.cdf(eta * (hh - mu2 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life))) - np.exp(
+            2 * mu2 * hh / vol ** 2) * norm.cdf(
+            eta * (-hh - mu2 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)))) \
+             - (norm.cdf(eta * (m - mu2 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life))) - np.exp(
+            2 * mu2 * hh / vol ** 2) * norm.cdf(
+            eta * (m - 2 * hh - mu2 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life))))
+
+        g2 = (norm.cdf(eta * (hh - mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life))) - np.exp(
+            2 * mu1 * hh / vol ** 2) * norm.cdf(
+            eta * (-hh - mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)))) \
+             - (norm.cdf(eta * (m - mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life))) - np.exp(
+            2 * mu1 * hh / vol ** 2) * norm.cdf(
+            eta * (m - 2 * hh - mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life))))
+
+        part1 = underlying_price * np.exp((carry_cost - rate) * maturity) * (1 + vol ** 2 / (2 * carry_cost)) * (
+                CBND(eta * (m - mu2 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)),
+                     eta * (-K + mu2 * maturity) / (vol * np.sqrt(maturity)), -rho) - np.exp(
+            2 * mu2 * hh / vol ** 2) \
+                * CBND(eta * (m - 2 * hh - mu2 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)),
+                       eta * (2 * hh - K + mu2 * maturity) / (vol * np.sqrt(maturity)), -rho))
+        part2 = -np.exp(-rate * maturity) * strike_price * (
+                CBND(eta * (m - mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)),
+                     eta * (-K + mu1 * maturity) / (vol * np.sqrt(maturity)), -rho) \
+                - np.exp(2 * mu1 * hh / vol ** 2) * CBND(
+            eta * (m - 2 * hh - mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)),
+            eta * (2 * hh - K + mu1 * maturity) / (vol * np.sqrt(maturity)), -rho))
+        part3 = -np.exp(-rate * maturity) * vol ** 2 / (2 * carry_cost) * (
+                underlying_price * (underlying_price / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
+            eta * (m + mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)),
+            eta * (-K - mu1 * maturity) / (vol * np.sqrt(maturity)),
+            -rho) \
+                - barrier * (barrier / strike_price) ** (-2 * carry_cost / vol ** 2) * CBND(
+            eta * (m - 2 * hh + mu1 * barrier_holding_life) / (vol * np.sqrt(barrier_holding_life)),
+            eta * (2 * hh - K - mu1 * maturity) / (vol * np.sqrt(maturity)), -rho))
+        part4 = underlying_price * np.exp((carry_cost - rate) * maturity) * (
+                (1 + vol ** 2 / (2 * carry_cost)) * norm.cdf(
+            eta * mu2 * (maturity - barrier_holding_life) / (vol * np.sqrt(maturity - barrier_holding_life))) + np.exp(
+            -carry_cost * (maturity - barrier_holding_life)) * (
+                        1 - vol ** 2 / (2 * carry_cost)) \
+                * norm.cdf(eta * (-mu1 * (maturity - barrier_holding_life)) / (
+                vol * np.sqrt(maturity - barrier_holding_life)))) * g1 - np.exp(-rate * maturity) * strike_price * g2
+        OutValue = eta * (part1 + part2 + part3 + part4)
+
+        if options_type.lower() in ['cuo', 'pdo']:
+            return OutValue
+        elif options_type.lower() in ['cui']:
+            return ExoticOPtions.Partial_Fixed_LookBack_Options(underlying_price, strike_price, barrier_holding_life,
+                                                                maturity,rate, carry_cost, vol, 'call') - OutValue
+        elif options_type.lower() in ['pdi']:
+            return ExoticOPtions.Partial_Fixed_LookBack_Options(underlying_price, strike_price, barrier_holding_life,
+                                                                maturity,rate, carry_cost, vol, 'put') - OutValue
+        else:
+            raise TypeError
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1238,3 +1322,11 @@ if __name__ == '__main__':
     print('partial 2 assets barrier options with up-and-out put',
           ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
                                                           'puo'))
+    print('lookback barrier options with up-and-out call',
+          ExoticOPtions.Lookback_Barrier_Options(100,105,110,0.5,1,0.1,0.1,0.3,'cuo'))
+    print('lookback barrier options with up-and-in call',
+          ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'cui'))
+    print('lookback barrier options with down-and-out put',
+              ExoticOPtions.Lookback_Barrier_Options(100,105,110,0.5,1,0.1,0.1,0.3,'pdo'))
+    print('lookback barrier options with down-and-in put',
+          ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'pdi'))
