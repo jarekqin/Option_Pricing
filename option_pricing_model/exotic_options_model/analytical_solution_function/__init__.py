@@ -39,10 +39,11 @@ class ExoticOPtions(object):
             1, alpha, maturity - forward_time, rate, carry_cost, vol, options_type)
 
     @staticmethod
-    def Time_Switch_Options(underlying_price, strike_price, accumulated_amount, maturity, time_units, time_interval,
-                            rate, carry_cost, vol, options_type='call'):
+    def maturityime_Switch_Options(underlying_price, strike_price, accumulated_amount, maturity, time_units,
+                                   time_interval,
+                                   rate, carry_cost, vol, options_type='call'):
         """
-        Time switch options: give buyder side serveral time units that can be decided to call the options or not
+        maturityime switch options: give buyder side serveral time units that can be decided to call the options or not
         :param underlying_price: underlying_price
         :param strike_price: strike_price
         :param accumulated_amount: accumulated amount of underlyings
@@ -196,8 +197,8 @@ class ExoticOPtions(object):
             raise NotImplemented
 
     @staticmethod
-    def Two_Asset_Corr_Options(underlying_price1, underlying_price2, strike_price1, strike_price2, maturity,
-                               rate, carry_cosmaturity1, carry_cost2, vol1, vol2, correlation, options_type):
+    def maturitywo_Asset_Corr_Options(underlying_price1, underlying_price2, strike_price1, strike_price2, maturity,
+                                      rate, carry_cosmaturity1, carry_cost2, vol1, vol2, correlation, options_type):
         y1 = (np.log(underlying_price1 / strike_price1) + (carry_cosmaturity1 - vol1 ** 2 / 2) * maturity) / (
                 vol1 * np.sqrt(maturity))
         y2 = (np.log(underlying_price2 / strike_price2) + (carry_cost2 - vol2 ** 2 / 2) * maturity) / (
@@ -961,8 +962,8 @@ class ExoticOPtions(object):
         return result
 
     @staticmethod
-    def Two_Asets_Barrier_Options(underlying_price1, underlying_price2, strike_price, barrier, maturity,
-                                  rate, carry_cost1, carry_cost2, vol1, vol2, corr_, options_type):
+    def maturitywo_Asets_Barrier_Options(underlying_price1, underlying_price2, strike_price, barrier, maturity,
+                                         rate, carry_cost1, carry_cost2, vol1, vol2, corr_, options_type):
         """
         2 assets barrier options
         :param underlying_price1: price on asset1
@@ -1025,9 +1026,9 @@ class ExoticOPtions(object):
             raise TypeError
 
     @staticmethod
-    def Partial_Two_Asets_Barrier_Options(underlying_price1, underlying_price2, strike_price, barrier,
-                                          barrier_holding_life, maturity, rate, carry_cost1, carry_cost2,
-                                          vol1, vol2, corr_, options_type):
+    def Partial_maturitywo_Asets_Barrier_Options(underlying_price1, underlying_price2, strike_price, barrier,
+                                                 barrier_holding_life, maturity, rate, carry_cost1, carry_cost2,
+                                                 vol1, vol2, corr_, options_type):
         """
         2 assets barrier options
         :param underlying_price1: price on asset1
@@ -1163,10 +1164,70 @@ class ExoticOPtions(object):
             return OutValue
         elif options_type.lower() in ['cui']:
             return ExoticOPtions.Partial_Fixed_LookBack_Options(underlying_price, strike_price, barrier_holding_life,
-                                                                maturity,rate, carry_cost, vol, 'call') - OutValue
+                                                                maturity, rate, carry_cost, vol, 'call') - OutValue
         elif options_type.lower() in ['pdi']:
             return ExoticOPtions.Partial_Fixed_LookBack_Options(underlying_price, strike_price, barrier_holding_life,
-                                                                maturity,rate, carry_cost, vol, 'put') - OutValue
+                                                                maturity, rate, carry_cost, vol, 'put') - OutValue
+        else:
+            raise TypeError
+
+    @staticmethod
+    def Soft_Barrier_Options(underlying_price, strike_price, lower_barrier, higher_barrier, maturity, rate,
+                             carry_cost, vol, options_type):
+        """
+        soft barrier options
+        :param underlying_price: price on underlying
+        :param strike_price: strike price on options
+        :param lower_barrier: lower barrier price
+        :param hight_barrier: higher barrier price
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: call/put
+        :return: options price
+        """
+        if options_type.lower() in ['cdi', 'cdo']:
+            eta = 1
+        else:
+            eta = -1
+        mu = (carry_cost + vol ** 2 / 2) / vol ** 2
+        lambda1 = np.exp(-1 / 2 * vol ** 2 * maturity * (mu + 0.5) * (mu - 0.5))
+        lambda2 = np.exp(-1 / 2 * vol ** 2 * maturity * (mu - 0.5) * (mu - 1.5))
+        d1 = np.log(higher_barrier ** 2 / (underlying_price * strike_price)) / (
+                vol * np.sqrt(maturity)) + mu * vol * np.sqrt(maturity)
+        d2 = d1 - (mu + 0.5) * vol * np.sqrt(maturity)
+        d3 = np.log(higher_barrier ** 2 / (underlying_price * strike_price)) / (vol * np.sqrt(maturity)) + (
+                mu - 1) * vol * np.sqrt(maturity)
+        d4 = d3 - (mu - 0.5) * vol * np.sqrt(maturity)
+        e1 = np.log(lower_barrier ** 2 / (underlying_price * strike_price)) / (
+                    vol * np.sqrt(maturity)) + mu * vol * np.sqrt(
+            maturity)
+        e2 = e1 - (mu + 0.5) * vol * np.sqrt(maturity)
+        e3 = np.log(lower_barrier ** 2 / (underlying_price * strike_price)) / (vol * np.sqrt(maturity)) + (
+                mu - 1) * vol * np.sqrt(maturity)
+        e4 = e3 - (mu - 0.5) * vol * np.sqrt(maturity)
+
+        Value = eta * 1 / (higher_barrier - lower_barrier) * (
+                underlying_price * np.exp((carry_cost - rate) * maturity) * underlying_price ** (-2 * mu) \
+                * (underlying_price * strike_price) ** (mu + 0.5) / (2 * (mu + 0.5)) \
+                * ((higher_barrier ** 2 / (underlying_price * strike_price)) ** (mu + 0.5) * norm.cdf(
+            eta * d1) - lambda1 * norm.cdf(eta * d2) \
+                   - (lower_barrier ** 2 / (underlying_price * strike_price)) ** (mu + 0.5) * norm.cdf(
+                    eta * e1) + lambda1 * norm.cdf(eta * e2)) \
+                - strike_price * np.exp(-rate * maturity) * underlying_price ** (
+                        -2 * (mu - 1)) \
+                * (underlying_price * strike_price) ** (mu - 0.5) / (2 * (mu - 0.5)) \
+                * ((higher_barrier ** 2 / (underlying_price * strike_price)) ** (mu - 0.5) * norm.cdf(
+            eta * d3) - lambda2 * norm.cdf(eta * d4) \
+                   - (lower_barrier ** 2 / (underlying_price * strike_price)) ** (mu - 0.5) * norm.cdf(
+                    eta * e3) + lambda2 * norm.cdf(eta * e4)))
+        if options_type.lower() in ['cdi', 'pui']:
+            return Value
+        elif options_type.lower() == 'cdo':
+            return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'call') - Value
+        elif options_type.lower() == 'puo':
+            return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'put') - Value
         else:
             raise TypeError
 
@@ -1177,9 +1238,10 @@ if __name__ == '__main__':
           ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15, 'put'))
     print('forward call options', ExoticOPtions.Forward_Options(60, 1.1, 0.25, 1, 0.08, 0.04, 0.3))
     print('forward put options', ExoticOPtions.Forward_Options(60, 1.1, 0.25, 1, 0.08, 0.04, 0.3, 'put'))
-    print('time switch call options', ExoticOPtions.Time_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26))
+    print('time switch call options',
+          ExoticOPtions.maturityime_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26))
     print('time switch put options',
-          ExoticOPtions.Time_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26, 'put'))
+          ExoticOPtions.maturityime_Switch_Options(100, 110, 5, 1, 0, 0.00274, 0.06, 0.06, 0.26, 'put'))
     print('simple chooser options', ExoticOPtions.Chooser_Options(50, 55, 0, 0.25, 0.5, 0, 0.08, 0.08, 0.25))
     print('complex chooser options',
           ExoticOPtions.Chooser_Options(50, 55, 48, 0.25, 0.5, 0.5833, 0.1, 0.05, 0.35, 'complex'))
@@ -1282,51 +1344,59 @@ if __name__ == '__main__':
     print('partial barrier options with down-and-out put carry_cost2',
           ExoticOPtions.Partial_Barrier_Options(105, 90, 115, 0.35, 0.5, 0.1, 0.05, 0.2, 'pdob2'))
     print('2 assets barrier options with down-and-in call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cdi'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cdi'))
     print('2 assets barrier options with up-and-in call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cui'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cui'))
     print('2 assets barrier options with down-and-in put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pdi'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pdi'))
     print('2 assets barrier options with up-and-in put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pui'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pui'))
     print('2 assets barrier options with down-and-out call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cdo'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cdo'))
     print('2 assets barrier options with up-and-out call',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cuo'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'cuo'))
     print('2 assets barrier options with down-and-out put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pdo'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'pdo'))
     print('2 assets barrier options with up-and-out put',
-          ExoticOPtions.Two_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'puo'))
+          ExoticOPtions.maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5, 'puo'))
 
     print('partial 2 assets barrier options with down-and-in call',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'cdi'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'cdi'))
     print('partial 2 assets barrier options with up-and-in call',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'cui'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'cui'))
     print('partial 2 assets barrier options with down-and-in put',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'pdi'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'pdi'))
     print('partial 2 assets barrier options with up-and-in put',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'pui'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'pui'))
     print('partial 2 assets barrier options with down-and-out call',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'cdo'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'cdo'))
     print('partial 2 assets barrier options with up-and-out call',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'cuo'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'cuo'))
     print('partial 2 assets barrier options with down-and-out put',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'pdo'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'pdo'))
     print('partial 2 assets barrier options with up-and-out put',
-          ExoticOPtions.Partial_Two_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
-                                                          'puo'))
+          ExoticOPtions.Partial_maturitywo_Asets_Barrier_Options(100, 100, 95, 90, 0.25, 0.5, 0.08, 0, 0, 0.2, 0.2, 0.5,
+                                                                 'puo'))
     print('lookback barrier options with up-and-out call',
-          ExoticOPtions.Lookback_Barrier_Options(100,105,110,0.5,1,0.1,0.1,0.3,'cuo'))
+          ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'cuo'))
     print('lookback barrier options with up-and-in call',
           ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'cui'))
     print('lookback barrier options with down-and-in call',
           ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'pdi'))
     print('lookback barrier options with down-and-out put',
-              ExoticOPtions.Lookback_Barrier_Options(100,105,110,0.5,1,0.1,0.1,0.3,'pdo'))
+          ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'pdo'))
+    print('soft barrier options with down-and-in call',
+          ExoticOPtions.Soft_Barrier_Options(100,100,95,85,0.5,0.1,0.05,0.3,'cdi'))
+    print('soft barrier options with down-and-out call',
+          ExoticOPtions.Soft_Barrier_Options(100,100,95,85,0.5,0.1,0.05,0.3,'cdo'))
+    print('soft barrier options with up-and-in put',
+          ExoticOPtions.Soft_Barrier_Options(100, 100, 95, 85, 0.5, 0.1, 0.05, 0.3, 'pui'))
+    print('soft barrier options with up-and-out put',
+          ExoticOPtions.Soft_Barrier_Options(100, 100, 95, 85, 0.5, 0.1, 0.05, 0.3, 'puo'))
