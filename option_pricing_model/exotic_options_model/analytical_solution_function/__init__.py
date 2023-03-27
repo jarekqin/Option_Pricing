@@ -670,8 +670,10 @@ class ExoticOPtions(object):
         """
         mu = (carry_cost - vol ** 2 / 2) / vol ** 2
         lambda_ = np.sqrt(mu ** 2 + 2 * rate / vol ** 2)
-        X1 = np.log(underlying_price / strike_price) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(maturity)
-        X2 = np.log(underlying_price / barrier) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(maturity)
+        strike_price1 = np.log(underlying_price / strike_price) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(
+            maturity)
+        strike_price2 = np.log(underlying_price / barrier) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(
+            maturity)
         y1 = np.log(barrier ** 2 / (underlying_price * strike_price)) / (vol * np.sqrt(maturity)) + (
                 1 + mu) * vol * np.sqrt(maturity)
         y2 = np.log(barrier / underlying_price) / (vol * np.sqrt(maturity)) + (1 + mu) * vol * np.sqrt(maturity)
@@ -692,11 +694,11 @@ class ExoticOPtions(object):
             raise TypeError
 
         f1 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
-            phi * X1) - phi * strike_price * np.exp(-rate * maturity) * norm.cdf(
-            phi * X1 - phi * vol * np.sqrt(maturity))
+            phi * strike_price1) - phi * strike_price * np.exp(-rate * maturity) * norm.cdf(
+            phi * strike_price1 - phi * vol * np.sqrt(maturity))
         f2 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(
-            phi * X2) - phi * strike_price * np.exp(-rate * maturity) * norm.cdf(
-            phi * X2 - phi * vol * np.sqrt(maturity))
+            phi * strike_price2) - phi * strike_price * np.exp(-rate * maturity) * norm.cdf(
+            phi * strike_price2 - phi * vol * np.sqrt(maturity))
         f3 = phi * underlying_price * np.exp((carry_cost - rate) * maturity) * (barrier / underlying_price) ** (
                 2 * (mu + 1)) * norm.cdf(eta * y1) - phi * strike_price * np.exp(-rate * maturity) * (
                      barrier / underlying_price) ** (
@@ -706,7 +708,7 @@ class ExoticOPtions(object):
                      barrier / underlying_price) ** (
                      2 * mu) * norm.cdf(eta * y2 - eta * vol * np.sqrt(maturity))
         f5 = cash_rate * np.exp(-rate * maturity) * (
-                norm.cdf(eta * X2 - eta * vol * np.sqrt(maturity)) - (barrier / underlying_price) ** (
+                norm.cdf(eta * strike_price2 - eta * vol * np.sqrt(maturity)) - (barrier / underlying_price) ** (
                 2 * mu) * norm.cdf(eta * y2 - eta * vol * np.sqrt(maturity)))
         f6 = cash_rate * ((barrier / underlying_price) ** (mu + lambda_) * norm.cdf(eta * Z) + (
                 barrier / underlying_price) ** (mu - lambda_) * norm.cdf(eta * Z - 2 * eta *
@@ -1201,7 +1203,7 @@ class ExoticOPtions(object):
                 mu - 1) * vol * np.sqrt(maturity)
         d4 = d3 - (mu - 0.5) * vol * np.sqrt(maturity)
         e1 = np.log(lower_barrier ** 2 / (underlying_price * strike_price)) / (
-                    vol * np.sqrt(maturity)) + mu * vol * np.sqrt(
+                vol * np.sqrt(maturity)) + mu * vol * np.sqrt(
             maturity)
         e2 = e1 - (mu + 0.5) * vol * np.sqrt(maturity)
         e3 = np.log(lower_barrier ** 2 / (underlying_price * strike_price)) / (vol * np.sqrt(maturity)) + (
@@ -1228,6 +1230,55 @@ class ExoticOPtions(object):
             return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'call') - Value
         elif options_type.lower() == 'puo':
             return BSM(underlying_price, strike_price, maturity, rate, carry_cost, vol, 'put') - Value
+        else:
+            raise TypeError
+
+    @staticmethod
+    def Gap_Options(underlying_price, strike_price1, strike_price2, maturity, rate, carry_cost, vol, options_type):
+        """
+        gap options price
+        :param underlying_price: asset price
+        :param strike_price1: strike price on asset1
+        :param strike_price2: strike price on asset2
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: call/put
+        :return: options price
+        """
+        d1 = (np.log(underlying_price / strike_price1) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+        d2 = d1 - vol * np.sqrt(maturity)
+        if options_type.lower() == 'call':
+            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d1) - strike_price2 * np.exp(
+                -rate * maturity) * norm.cdf(d2)
+        elif options_type.lower() == 'put':
+            return strike_price2 * np.exp(-rate * maturity) * norm.cdf(-d2) - underlying_price * np.exp(
+                (carry_cost - rate) * maturity) * norm.cdf(-d1)
+        else:
+            raise TypeError
+
+    @staticmethod
+    def Cash_Or_Nothing(underlying_price, strike_price, cash, maturity, rate, carry_cost, vol, options_type):
+        """
+        cash or nothing options
+        :param underlying_price: asset price
+        :param strike_price: strike price
+        :param cash: cash given
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: options type
+        :return: options price
+        """
+        d = (np.log(underlying_price / strike_price) + (carry_cost - vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+        if options_type.lower() == 'call':
+            return cash * np.exp(-rate * maturity) * norm.cdf(d)
+        elif options_type.lower() == 'put':
+            return cash * np.exp(-rate * maturity) * norm.cdf(-d)
         else:
             raise TypeError
 
@@ -1393,10 +1444,14 @@ if __name__ == '__main__':
     print('lookback barrier options with down-and-out put',
           ExoticOPtions.Lookback_Barrier_Options(100, 105, 110, 0.5, 1, 0.1, 0.1, 0.3, 'pdo'))
     print('soft barrier options with down-and-in call',
-          ExoticOPtions.Soft_Barrier_Options(100,100,95,85,0.5,0.1,0.05,0.3,'cdi'))
+          ExoticOPtions.Soft_Barrier_Options(100, 100, 95, 85, 0.5, 0.1, 0.05, 0.3, 'cdi'))
     print('soft barrier options with down-and-out call',
-          ExoticOPtions.Soft_Barrier_Options(100,100,95,85,0.5,0.1,0.05,0.3,'cdo'))
+          ExoticOPtions.Soft_Barrier_Options(100, 100, 95, 85, 0.5, 0.1, 0.05, 0.3, 'cdo'))
     print('soft barrier options with up-and-in put',
           ExoticOPtions.Soft_Barrier_Options(100, 100, 95, 85, 0.5, 0.1, 0.05, 0.3, 'pui'))
     print('soft barrier options with up-and-out put',
           ExoticOPtions.Soft_Barrier_Options(100, 100, 95, 85, 0.5, 0.1, 0.05, 0.3, 'puo'))
+    print('gap call options', ExoticOPtions.Gap_Options(50, 50, 57, 0.5, 0.09, 0.09, 0.2, 'call'))
+    print('gap put options', ExoticOPtions.Gap_Options(50, 50, 57, 0.5, 0.09, 0.09, 0.2, 'put'))
+    print('cash or nothing call options', ExoticOPtions.Cash_Or_Nothing(100, 80, 10, 0.75, 0.06, 0, 0.35, 'call'))
+    print('cash or nothing put options', ExoticOPtions.Cash_Or_Nothing(100, 80, 10, 0.75, 0.06, 0, 0.35, 'put'))
