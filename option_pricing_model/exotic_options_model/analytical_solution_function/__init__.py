@@ -1327,6 +1327,27 @@ class ExoticOPtions(object):
         else:
             raise TypeError
 
+    @staticmethod
+    def Assets_Or_Nothing(underlying_price, strike_price, maturity, rate, carry_cost, vol, options_type):
+        """
+        assets or nothing options
+        :param underlying_price: asset price
+        :param strike_price: strike price
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: call/put
+        :return: options price
+        """
+        d = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+        if options_type.lower() == 'call':
+            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d)
+        elif options_type.lower() == 'put':
+            return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(-d)
+        else:
+            raise TypeError
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1508,3 +1529,5 @@ if __name__ == '__main__':
           ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '3'))
     print('2 assets cash or nothing down-up options',
           ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '3'))
+    print('asset or nothing call options', ExoticOPtions.Assets_Or_Nothing(70, 65, 0.5, 0.07, 0.02, 0.27, 'call'))
+    print('asset or nothing put options', ExoticOPtions.Assets_Or_Nothing(70, 65, 0.5, 0.07, 0.02, 0.27, 'put'))
