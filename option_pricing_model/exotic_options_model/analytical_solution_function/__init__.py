@@ -1282,6 +1282,51 @@ class ExoticOPtions(object):
         else:
             raise TypeError
 
+    @staticmethod
+    def Two_Assets_Cash_Or_Nothing(
+            underlying_price1, underlying_price2, strike_price1, strike_price2,
+            cash, maturity, rate, carry_cost1, carry_cost2, vol1, vol2, corr, options_type
+    ):
+        """
+        2 assets cash or nothing options
+        :param underlying_price1: asset 1 price
+        :param underlying_price2: asset 2 price
+        :param strike_pric1: strike price 1
+        :param strike_price2: strike price 2
+        :param cash: cash amounts
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost1: carry cost 1
+        :param carry_cost2: carry cost 2
+        :param vol1: volatility on asset 1
+        :param vol2: volatitlty on asset 2
+        :param corr: correlation between asset 1 and 2
+        :param options_type: options type
+        inlcluding:
+        [1] Cash-or-nothing call
+        [2] Cash-or-nothing put
+        [3] Cash-or-nothing up-down
+        [4] Cash-or-nothing down-up
+        :return: options price
+
+
+        """
+        d1 = (np.log(underlying_price1 / strike_price1) + (carry_cost1 - vol1 ** 2 / 2) * maturity) / (
+                vol1 * np.sqrt(maturity))
+        d2 = (np.log(underlying_price2 / strike_price2) + (carry_cost2 - vol2 ** 2 / 2) * maturity) / (
+                vol2 * np.sqrt(maturity))
+
+        if options_type in ['1', 1]:
+            return cash * np.exp(-rate * maturity) * CBND(d1, d2, corr)
+        elif options_type in ['2', 2]:
+            return cash * np.exp(-rate * maturity) * CBND(-d1, -d2, corr)
+        elif options_type in ['3', 3]:
+            return cash * np.exp(-rate * maturity) * CBND(d1, -d2, -corr)
+        elif options_type in ['4', 4]:
+            return cash * np.exp(-rate * maturity) * CBND(-d1, d2, -corr)
+        else:
+            raise TypeError
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1455,3 +1500,11 @@ if __name__ == '__main__':
     print('gap put options', ExoticOPtions.Gap_Options(50, 50, 57, 0.5, 0.09, 0.09, 0.2, 'put'))
     print('cash or nothing call options', ExoticOPtions.Cash_Or_Nothing(100, 80, 10, 0.75, 0.06, 0, 0.35, 'call'))
     print('cash or nothing put options', ExoticOPtions.Cash_Or_Nothing(100, 80, 10, 0.75, 0.06, 0, 0.35, 'put'))
+    print('2 assets cash or nothing call options',
+          ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '1'))
+    print('2 assets cash or nothing put options',
+          ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '2'))
+    print('2 assets cash or nothing up-down options',
+          ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '3'))
+    print('2 assets cash or nothing down-up options',
+          ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '3'))
