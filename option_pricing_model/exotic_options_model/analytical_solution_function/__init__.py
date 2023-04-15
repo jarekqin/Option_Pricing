@@ -1340,13 +1340,66 @@ class ExoticOPtions(object):
         :param options_type: call/put
         :return: options price
         """
-        d = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+        d = (np.log(underlying_price / strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
         if options_type.lower() == 'call':
             return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(d)
         elif options_type.lower() == 'put':
             return underlying_price * np.exp((carry_cost - rate) * maturity) * norm.cdf(-d)
         else:
             raise TypeError
+
+    @staticmethod
+    def Super_Share_Options(underlying_price, lower_strike_price, higher_strike_price, maturity, rate, carry_cost, vol):
+        """
+        super share options model
+        :param underlying_price: underlying asset price
+        :param lower_strike_price: lower level of strike price
+        :param higher_strike_price: higher level of strike price
+        :param maturity: time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :return: options price
+        """
+        d1 = (np.log(underlying_price / lower_strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+        d2 = (np.log(underlying_price / higher_strike_price) + (carry_cost + vol ** 2 / 2) * maturity) / (
+                vol * np.sqrt(maturity))
+
+        return underlying_price * np.exp((carry_cost - rate) * maturity) / lower_strike_price * (
+                norm.cdf(d1) - norm.cdf(d2))
+
+    @staticmethod
+    def Geometric_Average_Rate_Option(
+            underlying_price, avg_price, strike_price, original_maturity, remaining_maturity,
+            rate, carry_cost, vol, options_type
+    ):
+        """
+        average price of Asian options
+        :param underlying_price: underlying price
+        :param avg_price: average price of underlying
+        :param strike_price: strike price
+        :param original_maturity: original time to maturity
+        :param remaining_maturity: remained time to maturity
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility
+        :param options_type: call/put
+        :return: options price
+        """
+        bA = 1 / 2 * (carry_cost - vol ** 2 / 6)
+        vA = vol / np.sqrt(3)
+
+        t1 = original_maturity - remaining_maturity
+
+        if t1 > 0:
+            strike_price = (
+                                       t1 + remaining_maturity) / remaining_maturity * strike_price - t1 / remaining_maturity * avg_price
+            return BSM(underlying_price, strike_price, t1, rate, bA, vA, options_type) * remaining_maturity / (
+                    t1 + remaining_maturity)
+        else:
+            return BSM(underlying_price, strike_price, original_maturity, rate, bA, vA, options_type)
 
 
 if __name__ == '__main__':
@@ -1531,3 +1584,8 @@ if __name__ == '__main__':
           ExoticOPtions.Two_Assets_Cash_Or_Nothing(100, 100, 110, 90, 10, 0.5, 0.1, 0.05, 0.06, 0.2, 0.25, 0.5, '3'))
     print('asset or nothing call options', ExoticOPtions.Assets_Or_Nothing(70, 65, 0.5, 0.07, 0.02, 0.27, 'call'))
     print('asset or nothing put options', ExoticOPtions.Assets_Or_Nothing(70, 65, 0.5, 0.07, 0.02, 0.27, 'put'))
+    print('super share options', ExoticOPtions.Super_Share_Options(100, 90, 110, 0.25, 0.1, 0, 0.2))
+    print('Asian average price call options',
+          ExoticOPtions.Geometric_Average_Rate_Option(80, 80, 85, 0.25, 0.25, 0.05, 0.08, 0.2, 'call'))
+    print('Asian average price put options',
+          ExoticOPtions.Geometric_Average_Rate_Option(80, 80, 85, 0.25, 0.25, 0.05, 0.08, 0.2, 'put'))
