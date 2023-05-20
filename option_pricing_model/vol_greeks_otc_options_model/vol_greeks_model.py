@@ -22,7 +22,7 @@ def implied_volatility(options_price, underlying_price, strike_price, risk_free,
     sigma_max = 1.
     sigma_mid = (sigma_min + sigma_max) / 2
 
-    if options_type in ['call', 'CALL', 'Call']:
+    if options_type.lower() == 'call':
         def call_bs(s, k, sigma, r, t):
             d1 = (np.log(s / k) + (r + pow(sigma, 2) / 2) * t) / (sigma * np.sqrt(t))
             d2 = d1 - sigma * np.sqrt(t)
@@ -83,9 +83,9 @@ def BSM(s, k, sigma, r, t0, t1, types):
     t = (t1 - t0).days / 365
     d1 = (np.log(s / k) + (r + pow(sigma, 2) / 2) * t) / (sigma * np.sqrt(t))
     d2 = d1 - sigma * np.sqrt(t)
-    if types in ['call', 'CALL', 'Call']:
+    if types.lower() == 'call':
         options_price = s * norm.cdf(d1) - k * np.exp(-r * t) * norm.cdf(d2)
-    elif types in ['put', 'PUT', 'Put']:
+    elif types.lower() == 'put':
         options_price = k * np.exp(-r * t) * norm.cdf(-d2) - s * norm.cdf(-d1)
     else:
         raise TypeError('types only supports "call/put"!')
@@ -111,32 +111,32 @@ def eu_options_letters(s, k, sigma, r, t0, t1, letter, types):
     d2 = d1 - sigma * np.sqrt(t)
     result = None
 
-    if letter in ['Delta', 'delta', 'DELTA']:
-        if types in ['call', 'CALL', 'Call']:
+    if letter.lower() == 'delta':
+        if types.lower() == 'call':
             result = norm.cdf(d1)
-        elif types in ['put', 'PUT', 'Put']:
+        elif types.lower() == 'put':
             result = norm.cdf(d1) - 1
         else:
             raise TypeError('types only supports "call/put"!')
 
-    elif letter in ['Gamma', 'gamma', 'GAMMA']:
+    elif letter.lower() == 'gamma':
         result = np.exp(-pow(d1, 2) / 2) / (s * sigma * np.sqrt(2 * np.pi * t))
 
-    elif letter in ['Theta', 'theta', 'THETA']:
-        if types in ['call', 'CALL', 'Call']:
+    elif letter.lower() == 'theta':
+        if types.lower() == 'call':
             result = -(s * sigma * np.exp(-pow(d1, 2) / 2)) / (2 * np.sqrt(2 * np.pi * t)) - r * k * np.exp(
                 (-r * t) * norm.cdf(d2))
-        elif types in ['put', 'PUT', 'Put']:
+        elif types.lower() == 'put':
             result = -(s * sigma * np.exp(-pow(d1, 2) / 2)) / (2 * np.sqrt(2 * np.pi * t)) + r * k * np.exp(
                 (-r * t) * norm.cdf(-d2))
 
-    elif letter in ['Vega', 'vega', 'VEGA']:
+    elif letter.lower() == 'vega':
         result = s * np.sqrt(t) * np.exp(-pow(d1, 2) / 2) / np.sqrt(2 * np.pi)
 
-    elif letter in ['Rho', 'rho', 'RHO']:
-        if types in ['call', 'CALL', 'Call']:
+    elif letter.lower() == 'rho':
+        if types.lower() == 'call':
             result = k * t * np.exp(-r * t) * norm.cdf(d2)
-        elif types in ['put', 'PUT', 'Put']:
+        elif types.lower() == 'put':
             result = -k * t * np.exp(-r * t) * norm.cdf(-d2)
         else:
             raise TypeError('types only supports "call/put"!')
@@ -258,13 +258,13 @@ def binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma
             gamma_ = 2 * (gamma_delta_1 - gamma_delta_2) / (underlying_price * pow(u, 2) - underlying_price * pow(d, 2))
             theta_ = (options_matrix[1, 2] - options_matrix[0, 0]) / (2 * t)
             vega_ = (binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma + 1e-4,
-                                                risk_free,
-                                                maturity, steps, options_type,
-                                                False, position) - options_matrix[0, 0]) / 1e-4
+                                                            risk_free,
+                                                            maturity, steps, options_type,
+                                                            False, position) - options_matrix[0, 0]) / 1e-4
             rho_ = (binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma,
-                                               risk_free + 1e-4,
-                                               maturity, steps, options_type,
-                                               False, position) - options_matrix[0, 0]) / 1e-4
+                                                           risk_free + 1e-4,
+                                                           maturity, steps, options_type,
+                                                           False, position) - options_matrix[0, 0]) / 1e-4
             if position == 'long':
                 greek['delta'] = delta_
             elif position == 'short':
@@ -299,13 +299,13 @@ def binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma
             gamma_ = 2 * (gamma_delta_1 - gamma_delta_2) / (underlying_price * pow(u, 2) - underlying_price * pow(d, 2))
             theta_ = (options_matrix[1, 2] - options_matrix[0, 0]) / (2 * t)
             vega_ = (binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma + 1e-4,
-                                                risk_free,
-                                                maturity, steps, options_type,
-                                                False, position) - options_matrix[0, 0]) / 1e-4
+                                                            risk_free,
+                                                            maturity, steps, options_type,
+                                                            False, position) - options_matrix[0, 0]) / 1e-4
             rho_ = (binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma,
-                                               risk_free + 1e-4,
-                                               maturity, steps, options_type,
-                                               False, position) - options_matrix[0, 0]) / 1e-4
+                                                           risk_free + 1e-4,
+                                                           maturity, steps, options_type,
+                                                           False, position) - options_matrix[0, 0]) / 1e-4
             if position == 'long':
                 greek['delta'] = delta_
             elif position == 'short':
@@ -322,59 +322,77 @@ def binary_tree_us_options_cal_and_letters(underlying_price, strike_price, sigma
 
 
 if __name__ == '__main__':
-    print('call options price: ', BSM(325, 350, 0.291239, 0.0231393, '2019-10-02', '2020-04-02', 'call'))
-    print('put options price: ', BSM(325, 310, 0.291239, 0.0233875, '2019-10-02', '2020-10-02', 'put'))
-    print('*' * 50, 'beautiful line', '*' * 50)
-    t_cal = '2019-06-28'
-    t_maturity_call = '2019-08-28'
-    t_maturity_put = '2019-09-25'
-    vol = 0.234811
-    underlying_price = 2.950
-
-    k_call = 3.2
-    k_put = 2.8
-    risk_free = 0.02708
-
-    print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'delta', 'call'))
-    print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'gamma', 'call'))
-    print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'vega', 'call'))
-    print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'theta', 'call'))
-    print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'rho', 'call'))
-
-    print('*' * 50, 'beautiful line', '*' * 50)
-    print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'delta', 'put'))
-    print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'gamma', 'put'))
-    print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'vega', 'put'))
-    print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'theta', 'put'))
-    print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'rho', 'put'))
-
-    print('*' * 50, 'beautiful line', '*' * 50)
-    print(best_hedged_ratio(1, 22650000, 300 * 1000))
-
-    print('*' * 50, 'beautiful line', '*' * 50)
+    # print('call options price: ', BSM(325, 350, 0.291239, 0.0231393, '2019-10-02', '2020-04-02', 'call'))
+    # print('put options price: ', BSM(325, 310, 0.291239, 0.0233875, '2019-10-02', '2020-10-02', 'put'))
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # t_cal = '2019-06-28'
+    # t_maturity_call = '2019-08-28'
+    # t_maturity_put = '2019-09-25'
+    # vol = 0.234811
+    # underlying_price = 2.950
+    #
+    # k_call = 3.2
+    # k_put = 2.8
+    # risk_free = 0.02708
+    #
+    # print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'delta', 'call'))
+    # print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'gamma', 'call'))
+    # print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'vega', 'call'))
+    # print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'theta', 'call'))
+    # print(eu_options_letters(underlying_price, k_call, vol, risk_free, t_cal, t_maturity_call, 'rho', 'call'))
+    #
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'delta', 'put'))
+    # print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'gamma', 'put'))
+    # print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'vega', 'put'))
+    # print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'theta', 'put'))
+    # print(eu_options_letters(underlying_price, k_put, vol, risk_free, t_cal, t_maturity_put, 'rho', 'put'))
+    #
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # print(best_hedged_ratio(1, 22650000, 300 * 1000))
+    #
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # from datetime import datetime
+    #
+    # p_etf_apr25 = 2.913
+    # shibor_apr25 = 0.0288
+    # t_calculate = datetime(2019, 4, 25)
+    # t_mature = datetime(2019, 12, 25)
+    #
+    # k_c28 = 2.8
+    # k_c30 = 3.0
+    # k_c32 = 3.2
+    #
+    # p_c28_apr25 = 0.3432
+    # p_c30 = apr25 = 0.2438
+    # p_c32_apr25 = 0.1688
+    #
+    # print(implied_volatility(p_c28_apr25, p_etf_apr25, k_c28, shibor_apr25, t_calculate, t_mature, 'call'))
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # print(options_parity(0.15, 0.3, 5.0, 5.2, 0.02601, 3 / 12, "call"))
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # print(binary_tree_eu_options_cal(6.32, 6.6, 0.2538, 0.0228, 1, 250, 'call'))
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # print(binary_tree_us_options_cal_and_letters(3.5, 3.8, 0.1676, 0.02, 1, 252, 'put'))
+    # print(binary_tree_us_options_cal_and_letters(3.5, 3.8, 0.1676, 0.02, 1, 252, 'call'))
+    # print('*' * 50, 'beautiful line', '*' * 50)
+    # print(binary_tree_us_options_cal_and_letters(3.27, 3.6, 0.19, 0.02377, 0.5, 100, 'call', 'long'))
+    # print(binary_tree_us_options_cal_and_letters(3.27, 3.6, 0.19, 0.02377, 0.5, 100, 'put', 'short'))
     from datetime import datetime
 
-    p_etf_apr25 = 2.913
-    shibor_apr25 = 0.0288
-    t_calculate = datetime(2019, 4, 25)
-    t_mature = datetime(2019, 12, 25)
-
-    k_c28 = 2.8
-    k_c30 = 3.0
-    k_c32 = 3.2
-
-    p_c28_apr25 = 0.3432
-    p_c30 = apr25 = 0.2438
-    p_c32_apr25 = 0.1688
-
-    print(implied_volatility(p_c28_apr25, p_etf_apr25, k_c28, shibor_apr25, t_calculate, t_mature, 'call'))
-    print('*' * 50, 'beautiful line', '*' * 50)
-    print(options_parity(0.15, 0.3, 5.0, 5.2, 0.02601, 3 / 12, "call"))
-    print('*' * 50, 'beautiful line', '*' * 50)
-    print(binary_tree_eu_options_cal(6.32, 6.6, 0.2538, 0.0228, 1, 250, 'call'))
-    print('*' * 50, 'beautiful line', '*' * 50)
-    print(binary_tree_us_options_cal_and_letters(3.5, 3.8, 0.1676, 0.02, 1, 252, 'put'))
-    print(binary_tree_us_options_cal_and_letters(3.5, 3.8, 0.1676, 0.02, 1, 252, 'call'))
-    print('*' * 50, 'beautiful line', '*' * 50)
-    print(binary_tree_us_options_cal_and_letters(3.27, 3.6, 0.19, 0.02377, 0.5, 100, 'call', 'long'))
-    print(binary_tree_us_options_cal_and_letters(3.27, 3.6, 0.19, 0.02377, 0.5, 100, 'put', 'short'))
+    options_price = 15.0
+    underlying_price = 100
+    strike_price = 100
+    risk_free = 0.06
+    q = 0.03
+    t0 = datetime(2021, 8, 6)
+    t1 = datetime(2022, 8, 6)
+    options_type = 'call'
+    vol = 0.3
+    print(BSM(underlying_price, strike_price, vol, risk_free - q, t0, t1, 'call'))
+    print(implied_volatility(options_price, underlying_price, strike_price, risk_free - q, t0, t1, options_type))
+    print(eu_options_letters(underlying_price, strike_price, vol, risk_free - q, t0, t1, 'delta', 'call'))
+    print(eu_options_letters(underlying_price, strike_price, vol, risk_free - q, t0, t1, 'gamma', 'call'))
+    print(eu_options_letters(underlying_price, strike_price, vol, risk_free - q, t0, t1, 'vega', 'call'))
+    print(eu_options_letters(underlying_price, strike_price, vol, risk_free - q, t0, t1, 'theta', 'call'))
+    print(eu_options_letters(underlying_price, strike_price, vol, risk_free - q, t0, t1, 'rho', 'call'))
