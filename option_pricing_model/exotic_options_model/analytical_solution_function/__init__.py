@@ -1395,11 +1395,49 @@ class ExoticOPtions(object):
 
         if t1 > 0:
             strike_price = (
-                                       t1 + remaining_maturity) / remaining_maturity * strike_price - t1 / remaining_maturity * avg_price
+                                   t1 + remaining_maturity) / remaining_maturity * strike_price - t1 / remaining_maturity * avg_price
             return BSM(underlying_price, strike_price, t1, rate, bA, vA, options_type) * remaining_maturity / (
                     t1 + remaining_maturity)
         else:
             return BSM(underlying_price, strike_price, original_maturity, rate, bA, vA, options_type)
+
+    @staticmethod
+    def Turnbull_Wakeman_Arithmetic_Average_Asian_Options(underlying_price, avg_price, strike_price, original_maturity,
+                                                          remaining_maturity, time_to_start_average, rate, carry_cost,
+                                                          vol, options_type):
+        """
+        The Turnbull and Wakeman arithmetic average approximation
+        :param underlying_price: underlying price
+        :param avg_price: average price of underlying
+        :param strike_price: strike price of options
+        :param original_maturity: matiruty period of options
+        :param remaining_maturity: remained maturity on options
+        :param time_to_start_average: average time of options since start time
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility of undrlying
+        :param options_type:  call/put
+        :return: options price
+        """
+        m1 = (np.exp(carry_cost * original_maturity) - np.exp(carry_cost * time_to_start_average)) / (
+                carry_cost * (original_maturity - time_to_start_average))
+        m2 = 2 * np.exp((2 * carry_cost + vol ** 2) * original_maturity) / (
+                (carry_cost + vol ** 2) * (2 * carry_cost + vol ** 2) * (
+                original_maturity - time_to_start_average) ** 2) \
+             + 2 * np.exp((2 * carry_cost + vol ** 2) * time_to_start_average) / (
+                     carry_cost * (original_maturity - time_to_start_average) ** 2) * (
+                     1 / (2 * carry_cost + vol ** 2) - np.exp(
+                 carry_cost * (original_maturity - time_to_start_average)) / (carry_cost + vol ** 2))
+        bA = np.log(m1) / original_maturity
+        vA = np.sqrt(np.log(m2) / original_maturity - 2 * bA)
+        t1 = original_maturity - remaining_maturity
+
+        if t1 > 0:
+            strike_price = original_maturity / remaining_maturity * strike_price - t1 / remaining_maturity * avg_price
+            return BSM(underlying_price, strike_price, remaining_maturity, rate, bA, vA,
+                       options_type) * remaining_maturity / original_maturity
+        else:
+            return BSM(underlying_price, strike_price, remaining_maturity, rate, bA, vA, options_type)
 
 
 if __name__ == '__main__':
@@ -1589,3 +1627,9 @@ if __name__ == '__main__':
           ExoticOPtions.Geometric_Average_Rate_Option(80, 80, 85, 0.25, 0.25, 0.05, 0.08, 0.2, 'call'))
     print('Asian average price put options',
           ExoticOPtions.Geometric_Average_Rate_Option(80, 80, 85, 0.25, 0.25, 0.05, 0.08, 0.2, 'put'))
+    print('Asian Turnbull and Wakeman arithmetic average call options',
+          ExoticOPtions.Turnbull_Wakeman_Arithmetic_Average_Asian_Options(100, 110, 95, 0.75, 0.5, 0, 0.1, 0.05, 0.3,
+                                                                          'call'))
+    print('Asian Turnbull and Wakeman arithmetic average put options',
+          ExoticOPtions.Turnbull_Wakeman_Arithmetic_Average_Asian_Options(100, 110, 95, 0.75, 0.5, 0, 0.1, 0.05, 0.3,
+                                                                          'put'))
