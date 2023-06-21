@@ -1439,6 +1439,39 @@ class ExoticOPtions(object):
         else:
             return BSM(underlying_price, strike_price, remaining_maturity, rate, bA, vA, options_type)
 
+    @staticmethod
+    def Levy_Asian_Options(underlying_price, avg_price, strike_price, original_maturity, remaining_maturity, rate,
+                           carry_cost, vol, options_type):
+        """
+        Levy's arithmetic average approximation
+        :param underlying_price: underlying price
+        :param avg_price: average of udnerlying price
+        :param strike_price: strike price on options
+        :param original_maturity: whole maturity period of options
+        :param remaining_maturity: remained maturity period of options
+        :param rate: risk-free rate
+        :param carry_cost: carry cost
+        :param vol: volatility of undelrying
+        :param options_type: call/put
+        :return: options price
+        """
+        SE = underlying_price / (original_maturity * carry_cost) * (
+                np.exp((carry_cost - rate) * remaining_maturity) - np.exp(-rate * remaining_maturity))
+        m = 2 * underlying_price ** 2 / (carry_cost + vol ** 2) * (
+                (np.exp((2 * carry_cost + vol ** 2) * remaining_maturity) - 1) / (2 * carry_cost + vol ** 2) - (
+                np.exp(carry_cost * remaining_maturity) - 1) / carry_cost)
+        d = m / (original_maturity ** 2)
+        Sv = np.log(d) - 2 * (rate * remaining_maturity + np.log(SE))
+        XStar = strike_price - (original_maturity - remaining_maturity) / original_maturity * avg_price
+        d1 = 1 / np.sqrt(Sv) * (np.log(d) / 2 - np.log(XStar))
+        d2 = d1 - np.sqrt(Sv)
+
+        if options_type.lower() == 'call':
+            return SE * norm.cdf(d1) - XStar * np.exp(-rate * remaining_maturity) * norm.cdf(d2)
+        else:
+            return (SE * norm.cdf(d1) - XStar * np.exp(-rate * remaining_maturity) * norm.cdf(
+                d2)) - SE + XStar * np.exp(-rate * remaining_maturity)
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1633,3 +1666,7 @@ if __name__ == '__main__':
     print('Asian Turnbull and Wakeman arithmetic average put options',
           ExoticOPtions.Turnbull_Wakeman_Arithmetic_Average_Asian_Options(100, 110, 95, 0.75, 0.5, 0, 0.1, 0.05, 0.3,
                                                                           'put'))
+    print('Levy Asian Options call options',
+          ExoticOPtions.Levy_Asian_Options(100, 110, 95, 0.75, 0.5, 0.1, 0.05, 0.3, 'call'))
+    print('Levy Asian Options put options',
+          ExoticOPtions.Levy_Asian_Options(100, 110, 95, 0.75, 0.5, 0.1, 0.05, 0.3, 'put'))
