@@ -1472,6 +1472,68 @@ class ExoticOPtions(object):
             return (SE * norm.cdf(d1) - XStar * np.exp(-rate * remaining_maturity) * norm.cdf(
                 d2)) - SE + XStar * np.exp(-rate * remaining_maturity)
 
+    @staticmethod
+    def Foreign_Equity_Optins_In_Currency(underlying_price, strike_price, maturity, domestic_rate, divide_yield,
+                                          vol_underlying, vol_currency, corr_, exchange_rate, options_type):
+        """
+        Foreign equity options struck in domestic currency
+        :param underlying_price: assert price
+        :param strike_price: strike price of options
+        :param maturity: time to maturity
+        :param domestic_rate: domestic rate on currency
+        :param divide_yield: devide yield on currency
+        :param vol_underlying: volatility on asset
+        :param vol_currency: volatility on currency
+        :param corr_: correlation between undrlyings and currency
+        :param exchange_rate: exchange rate on currency
+        :param options_type: call/put
+        :return:options price
+        """
+        v = np.sqrt(vol_underlying ** 2 + vol_currency ** 2 + 2 * corr_ * vol_underlying * vol_currency)
+        d1 = (np.log(exchange_rate * underlying_price / strike_price) + (
+                domestic_rate - divide_yield + v ** 2 / 2) * maturity) / (v * np.sqrt(maturity))
+        d2 = d1 - v * np.sqrt(maturity)
+
+        if options_type.lower() == 'call':
+            return exchange_rate * underlying_price * np.exp(-divide_yield * maturity) * norm.cdf(
+                d1) - strike_price * np.exp(-domestic_rate * maturity) * norm.cdf(d2)
+        else:
+            return strike_price * np.exp(-domestic_rate * maturity) * norm.cdf(
+                -d2) - exchange_rate * underlying_price * np.exp(-divide_yield * maturity) * norm.cdf(-d1)
+
+    @staticmethod
+    def Quanto(underlying_price, strike_price, maturity, domestic_rate, divide_yield, foreign_rate,
+               vol_underlying, vol_currency, corr_, exchange_rate, options_type):
+        """
+        Quanto options struck in domestic currency
+        :param underlying_price: assert price
+        :param strike_price: strike price of options
+        :param maturity: time to maturity
+        :param domestic_rate: domestic rate on currency
+        :param divide_yield: devide yield on currency
+        :param foreign_rate: foreign currency rate
+        :param vol_underlying: volatility on asset
+        :param vol_currency: volatility on currency
+        :param corr_: correlation between undrlyings and currency
+        :param exchange_rate: exchange rate on currency
+        :param options_type: call/put
+        :return:options price
+        """
+        d1 = (np.log(underlying_price / strike_price) + (
+                foreign_rate - divide_yield - corr_ * vol_underlying * vol_currency + vol_underlying ** 2 / 2) * maturity) / (
+                     vol_underlying * np.sqrt(maturity))
+        d2 = d1 - vol_underlying * np.sqrt(maturity)
+
+        if options_type.lower() == 'call':
+            return exchange_rate * (underlying_price * np.exp((
+                                                                      foreign_rate - domestic_rate - divide_yield - corr_ * vol_underlying * vol_currency) * maturity) * norm.cdf(
+                d1) - strike_price * np.exp(-domestic_rate * maturity) * norm.cdf(d2))
+        else:
+            return exchange_rate * (
+                    strike_price * np.exp(-domestic_rate * maturity) * norm.cdf(-d2) - underlying_price * np.exp((
+                                                                                                                         foreign_rate - domestic_rate - divide_yield - corr_ * vol_underlying * vol_currency) * maturity) * norm.cdf(
+                -d1))
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1670,3 +1732,11 @@ if __name__ == '__main__':
           ExoticOPtions.Levy_Asian_Options(100, 110, 95, 0.75, 0.5, 0.1, 0.05, 0.3, 'call'))
     print('Levy Asian Options put options',
           ExoticOPtions.Levy_Asian_Options(100, 110, 95, 0.75, 0.5, 0.1, 0.05, 0.3, 'put'))
+    print('Foreign equity call options',
+          ExoticOPtions.Foreign_Equity_Optins_In_Currency(100, 160, 0.5, 0.08, 0.05, 0.2, 0.12, 0.45, 1.5, 'call'))
+    print('Foreign equity put options',
+          ExoticOPtions.Foreign_Equity_Optins_In_Currency(100, 160, 0.5, 0.08, 0.05, 0.2, 0.12, 0.45, 1.5, 'put'))
+
+    print('Quanto call options', ExoticOPtions.Quanto(100, 105, 0.5, 0.08, 0.04, 0.05, 0.1, 0.1, 0.3, 1.5, 'call'))
+    print('Quanto put options options',
+          ExoticOPtions.Quanto(100, 105, 0.5, 0.08, 0.04, 0.05, 0.1, 0.1, 0.3, 1.5, 'put'))
