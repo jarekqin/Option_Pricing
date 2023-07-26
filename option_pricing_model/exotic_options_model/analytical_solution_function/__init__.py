@@ -1534,6 +1534,39 @@ class ExoticOPtions(object):
                                                                                                                          foreign_rate - domestic_rate - divide_yield - corr_ * vol_underlying * vol_currency) * maturity) * norm.cdf(
                 -d1))
 
+    @staticmethod
+    def Equity_Linked_FX_Options(underlying_price, strike_price, maturity, domestic_rate, foreigne_rate, deivided_rate,
+                                 underlying_vol, currency_vol, correlation, exchange_rate, options_type):
+        """
+        equity linked fixed options
+        :param underlying_price: underlying price
+        :param strike_price: strike price of options
+        :param maturity: time to maturity
+        :param domestic_rate: domestic rate on asset
+        :param foreigne_rate: foreigne rate on asset
+        :param deivided_rate: divided rate
+        :param underlying_vol: volatility of underlying
+        :param currency_vol: currency volatility
+        :param correlation: assets correlation
+        :param exchange_rate: exchange rate on underlyings
+        :param options_type: call/put
+        :return: options price
+        """
+        d1 = (np.log(exchange_rate / strike_price) + (
+                domestic_rate - foreigne_rate + correlation * underlying_vol * currency_vol + currency_vol ** 2 / 2) * maturity) / (
+                     currency_vol * np.sqrt(maturity))
+        d2 = d1 - currency_vol * np.sqrt(maturity)
+
+        if options_type.lower() == 'call':
+            return exchange_rate * underlying_price * np.exp(-deivided_rate * maturity) * norm.cdf(
+                d1) - strike_price * underlying_price * np.exp((
+                                                                       foreigne_rate - domestic_rate - deivided_rate - correlation * underlying_vol * currency_vol) * maturity) * norm.cdf(
+                d2)
+        else:
+            return strike_price * underlying_price * np.exp((
+                                                                    foreigne_rate - domestic_rate - deivided_rate - correlation * underlying_vol * currency_vol) * maturity) * norm.cdf(
+                -d2) - exchange_rate * underlying_price * np.exp(-deivided_rate * maturity) * norm.cdf(-d1)
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1740,3 +1773,8 @@ if __name__ == '__main__':
     print('Quanto call options', ExoticOPtions.Quanto(100, 105, 0.5, 0.08, 0.04, 0.05, 0.1, 0.1, 0.3, 1.5, 'call'))
     print('Quanto put options options',
           ExoticOPtions.Quanto(100, 105, 0.5, 0.08, 0.04, 0.05, 0.1, 0.1, 0.3, 1.5, 'put'))
+
+    print('Equity Linked FX call options',
+          ExoticOPtions.Equity_Linked_FX_Options(100, 1.52, 0.25, 0.08, 0.05, 0.04, 0.2, 0.12, -0.4, 1.5, 'call'))
+    print('Equity Linked FX call options',
+          ExoticOPtions.Equity_Linked_FX_Options(100, 1.52, 0.25, 0.08, 0.05, 0.04, 0.2, 0.12, -0.4, 1.5, 'put'))
