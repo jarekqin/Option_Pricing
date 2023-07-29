@@ -772,7 +772,7 @@ class ExoticOPtions(object):
         :return: options price
         """
         F = high_barrier * np.exp(curvature_upper * maturity)
-        E = low_barrier * np.exp(curvature_upper * maturity)
+        exchange_rate = low_barrier * np.exp(curvature_upper * maturity)
         Sum1 = 0
         Sum2 = 0
 
@@ -804,12 +804,13 @@ class ExoticOPtions(object):
                 -rate * maturity) * Sum2
         elif options_type.lower() in ['po', 'pi']:
             for n in range(-5, 6):
-                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (E * low_barrier ** (2 * n))) + (
+                d1 = (np.log(underlying_price * high_barrier ** (2 * n) / (exchange_rate * low_barrier ** (2 * n))) + (
                         carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
                 d2 = (np.log(underlying_price * high_barrier ** (2 * n) / (strike_price * low_barrier ** (2 * n))) + (
                         carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
-                d3 = (np.log(low_barrier ** (2 * n + 2) / (E * underlying_price * high_barrier ** (2 * n))) + (
-                        carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
+                d3 = (np.log(
+                    low_barrier ** (2 * n + 2) / (exchange_rate * underlying_price * high_barrier ** (2 * n))) + (
+                              carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
                 d4 = (np.log(
                     low_barrier ** (2 * n + 2) / (strike_price * underlying_price * high_barrier ** (2 * n))) + (
                               carry_cost + vol ** 2 / 2) * maturity) / (vol * np.sqrt(maturity))
@@ -1567,6 +1568,34 @@ class ExoticOPtions(object):
                                                                     foreigne_rate - domestic_rate - deivided_rate - correlation * underlying_vol * currency_vol) * maturity) * norm.cdf(
                 -d2) - exchange_rate * underlying_price * np.exp(-deivided_rate * maturity) * norm.cdf(-d1)
 
+    @staticmethod
+    def Take_Over_FX_Options(foreign_firm_price, currency_nunit, exchange_rate, strike_price, maturity,
+                             domestic_risk_free, foreign_risk_free, vol_stock, vol_exchange_rate, corr_):
+        """
+        take over fixed options
+        :param foreign_firm_price: foreign firm value
+        :param currency_nunit: currency unit
+        :param exchange_rate: exchange rate
+        :param strike_price: strike price on options
+        :param maturity: time to maturity
+        :param Domestic_risk_free: domestic risk rate
+        :param foreign_risk_free: foreign risk free
+        :param vol_stock: volatility on stocks
+        :param vol_exchange_rate: volatility on exchange rate
+        :param corr_: correlation
+        :return: options price
+        """
+        a1 = (np.log(foreign_firm_price / currency_nunit) + (
+                foreign_risk_free - corr_ * vol_exchange_rate * vol_stock - vol_stock ** 2 / 2) * maturity) / (
+                     vol_stock * np.sqrt(maturity))
+        a2 = (np.log(exchange_rate / strike_price) + (
+                domestic_risk_free - foreign_risk_free - vol_exchange_rate ** 2 / 2) * maturity) / (
+                     vol_exchange_rate * np.sqrt(maturity))
+
+        return currency_nunit * (exchange_rate * np.exp(-foreign_risk_free * maturity) * CBND(
+            a2 + vol_exchange_rate * np.sqrt(maturity), -a1 - corr_ * vol_exchange_rate * np.sqrt(maturity),
+            -corr_) - strike_price * np.exp(-domestic_risk_free * maturity) *CBND(-a1, a2, -corr_))
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1778,3 +1807,4 @@ if __name__ == '__main__':
           ExoticOPtions.Equity_Linked_FX_Options(100, 1.52, 0.25, 0.08, 0.05, 0.04, 0.2, 0.12, -0.4, 1.5, 'call'))
     print('Equity Linked FX call options',
           ExoticOPtions.Equity_Linked_FX_Options(100, 1.52, 0.25, 0.08, 0.05, 0.04, 0.2, 0.12, -0.4, 1.5, 'put'))
+    print("take over fx options", ExoticOPtions.Take_Over_FX_Options(200, 260, 1.5, 1.5, 0.5, 0.1, 0.1, 0.4, 0.12, 0.4))
