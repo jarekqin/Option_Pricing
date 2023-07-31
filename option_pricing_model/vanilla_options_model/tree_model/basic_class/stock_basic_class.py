@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class StockOPtion(object):
+class StockOption(object):
     def __init__(self,S0,K,r,T,N,pu,pd,div,sigma,is_put=False,is_am=False):
         """
         initialise the tree model of stock options

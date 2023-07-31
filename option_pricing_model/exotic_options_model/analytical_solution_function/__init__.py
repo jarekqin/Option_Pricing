@@ -1594,7 +1594,35 @@ class ExoticOPtions(object):
 
         return currency_nunit * (exchange_rate * np.exp(-foreign_risk_free * maturity) * CBND(
             a2 + vol_exchange_rate * np.sqrt(maturity), -a1 - corr_ * vol_exchange_rate * np.sqrt(maturity),
-            -corr_) - strike_price * np.exp(-domestic_risk_free * maturity) *CBND(-a1, a2, -corr_))
+            -corr_) - strike_price * np.exp(-domestic_risk_free * maturity) * CBND(-a1, a2, -corr_))
+
+    @staticmethod
+    def Swaption(swap_tensor_year, compounded_rate, underlying_swap_rate, strike_price, maturity, risk_free_rate,
+                 swap_vol, options_type):
+        """
+        swaption pricing model
+        :param swap_tensor_year: swap tensor years
+        :param compounded_rate: compunded rate yearly
+        :param underlying_swap_rate: underlying swap rate
+        :param strike_price: strike price on swaptions
+        :param maturity: time to maturity
+        :param risk_free_rate: risk free rate
+        :param swap_vol: swap volatility
+        :param options_type: payer/receiver
+        :return: options price
+        """
+        d1 = (np.log(underlying_swap_rate / strike_price) + swap_vol ** 2 / 2 * maturity) / (
+                swap_vol * np.sqrt(maturity))
+        d2 = d1 - swap_vol * np.sqrt(maturity)
+
+        if options_type.lower() == 'receiver':
+            return ((1 - 1 / (1 + underlying_swap_rate / compounded_rate) ** (
+                    swap_tensor_year * compounded_rate)) / underlying_swap_rate) * np.exp(
+                -risk_free_rate * maturity) * (strike_price * norm.cdf(-d2) - underlying_swap_rate * norm.cdf(-d1))
+        else:
+            return ((1 - 1 / (1 + underlying_swap_rate / compounded_rate) ** (
+                    swap_tensor_year * compounded_rate)) / underlying_swap_rate) * np.exp(
+                -risk_free_rate * maturity) * (underlying_swap_rate * norm.cdf(d1) - strike_price * norm.cdf(d2))
 
 
 if __name__ == '__main__':
@@ -1808,3 +1836,5 @@ if __name__ == '__main__':
     print('Equity Linked FX call options',
           ExoticOPtions.Equity_Linked_FX_Options(100, 1.52, 0.25, 0.08, 0.05, 0.04, 0.2, 0.12, -0.4, 1.5, 'put'))
     print("take over fx options", ExoticOPtions.Take_Over_FX_Options(200, 260, 1.5, 1.5, 0.5, 0.1, 0.1, 0.4, 0.12, 0.4))
+    print('Swaptions payer options', 100 * ExoticOPtions.Swaption(4, 2, 0.07, 0.075, 2, 0.06, 0.2, 'payer'))
+    print('Swaptions payer options', 100 * ExoticOPtions.Swaption(4, 2, 0.07, 0.075, 2, 0.06, 0.2, 'receiver'))
