@@ -1624,6 +1624,43 @@ class ExoticOPtions(object):
                     swap_tensor_year * compounded_rate)) / underlying_swap_rate) * np.exp(
                 -risk_free_rate * maturity) * (underlying_swap_rate * norm.cdf(d1) - strike_price * norm.cdf(d2))
 
+    @staticmethod
+    def Vasicek_Bond_Options_Price(bond_face_value, strike_price, bond_maturity, option_expiration_maturity, ir, theta,
+                                   kappa, vol, options_type):
+        """
+        Vasicek Bond Options Price
+        :param bond_face_value: bond face value
+        :param strike_price: strike price on option
+        :param bond_maturity: time to maturity on bond
+        :param option_expiration_maturity: option expiration maturity
+        :param ir: interest rate
+        :param theta: mean reversion level
+        :param kappa: speed of mean reversion
+        :param vol: volatility on bond
+        :param options_type: call/put
+        :return: options price
+        """
+
+        def bond_price(bond_maturity, option_expiration_maturity, ir, theta, kappa, vol):
+            BtT = (1 - np.exp(-kappa * (option_expiration_maturity - bond_maturity))) / kappa
+            AtT = np.exp((BtT - option_expiration_maturity + bond_maturity) * (
+                    kappa ** 2 * theta - vol ** 2 / 2) / kappa ** 2 - vol ** 2 * BtT ** 2 / (4 * kappa))
+            PtT = AtT * np.exp(-BtT * ir)
+            return PtT
+
+        strike_price = strike_price / bond_face_value
+        PtT = bond_price(0, option_expiration_maturity, ir, theta, kappa, vol)
+        Pt_tau = bond_price(0, bond_maturity, ir, theta, kappa, vol)
+        vp = np.sqrt(vol ** 2 * (1 - np.exp(-2 * kappa * option_expiration_maturity)) / (2 * kappa)) * (
+                1 - np.exp(-kappa * (bond_maturity - option_expiration_maturity))) / kappa
+
+        H = 1 / vp * np.log(Pt_tau / (PtT * strike_price)) + vp / 2
+
+        if options_type.lower() == 'call':
+            return bond_face_value * (Pt_tau * norm.cdf(H) - strike_price * PtT * norm.cdf(H - vp))
+        else:
+            return bond_face_value * (strike_price * PtT * norm.cdf(-H + vp) - Pt_tau * norm.cdf(-H))
+
 
 if __name__ == '__main__':
     print('execution stock call options', ExoticOPtions.Executive_Stock_Options(65, 64, 2, 0.07, 0.04, 0.38, 0.15))
@@ -1838,3 +1875,7 @@ if __name__ == '__main__':
     print("take over fx options", ExoticOPtions.Take_Over_FX_Options(200, 260, 1.5, 1.5, 0.5, 0.1, 0.1, 0.4, 0.12, 0.4))
     print('Swaptions payer options', 100 * ExoticOPtions.Swaption(4, 2, 0.07, 0.075, 2, 0.06, 0.2, 'payer'))
     print('Swaptions payer options', 100 * ExoticOPtions.Swaption(4, 2, 0.07, 0.075, 2, 0.06, 0.2, 'receiver'))
+    print('bond call options',
+          ExoticOPtions.Vasicek_Bond_Options_Price(104, 81.74, 7, 4, 0.09, 0.1, 0.05, 0.03, 'call'))
+    print('bond put options',
+          ExoticOPtions.Vasicek_Bond_Options_Price(104, 81.74, 7, 4, 0.09, 0.1, 0.05, 0.03, 'put'))
